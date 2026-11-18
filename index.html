@@ -92,12 +92,13 @@
 
     /* Tutorial Target Pulse */
     @keyframes pulseAmber {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.85); }
-      50% { box-shadow: 0 0 0 8px rgba(251, 191, 36, 0); }
+      0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.92); }
+      50% { box-shadow: 0 0 0 9px rgba(251, 191, 36, 0); }
     }
     .pulse-amber {
-      animation: pulseAmber 1.5s infinite;
-      outline: 2px solid #fbbf24;
+      animation: pulseAmber 1.35s infinite;
+      outline: 2.5px solid #fbbf24;
+      outline-offset: 2px;
     }
 
     /* Custom Scrollbars inside Modals */
@@ -119,37 +120,40 @@
   <!-- MAIN INTERACTIVE SIMULATION CANVAS -->
   <canvas id="gameCanvas"></canvas>
 
+  <!-- PAUSED INDICATOR BADGE (Shown automatically when a modal is open) -->
+  <div id="paused-pill" class="hidden fixed top-24 left-3 sm:left-5 z-20 pointer-events-none bg-amber-500/95 text-slate-950 font-black text-[11px] uppercase tracking-wider px-3 py-1 rounded-full shadow-lg border border-amber-300">
+    ⏸ PAUSED
+  </div>
+
   <!-- TOP HUD BAR -->
-  <header class="fixed top-0 left-0 right-0 z-20 pointer-events-none px-2.5 sm:px-4 pt-[calc(0.5rem+var(--safe-top))]">
-    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+  <header class="fixed top-0 left-0 right-0 z-20 pointer-events-none px-2 sm:px-4 pt-[calc(0.45rem+var(--safe-top))]">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-1.5 sm:gap-2">
 
       <!-- Left: Brand Badge + Balance -->
-      <div class="pointer-events-auto flex items-center gap-2 sm:gap-3 bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-2xl px-3 py-1.5 shadow-xl">
-        <div class="w-9 h-9 rounded-xl bg-amber-500 flex items-center justify-center text-slate-950 font-black text-lg shadow-inner shrink-0">
-          ⛏️
-        </div>
+      <div class="pointer-events-auto flex items-center gap-2 sm:gap-2.5 bg-slate-900/92 backdrop-blur-md border border-slate-700/85 rounded-2xl px-2.5 sm:px-3 py-1.5 shadow-xl">
+        <div id="brand-logo-slot" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-500 flex items-center justify-center text-slate-950 shadow-inner shrink-0"></div>
         <div class="leading-tight">
           <div class="flex items-center gap-1.5">
             <span class="font-black text-xs sm:text-sm tracking-wide text-amber-400">MINE MASTER</span>
-            <span id="hud-version" class="text-[10px] font-mono-num bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded-md border border-slate-700">v3.1.0</span>
+            <span id="hud-version" class="text-[10px] font-mono-num bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded-md border border-slate-700">v4.0.0</span>
           </div>
-          <div class="flex items-center gap-2 text-[11px] text-slate-400">
+          <div class="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-slate-400">
             <span id="hud-day">Day 1</span>
             <span>•</span>
-            <span id="hud-weather">☀️ Clear</span>
+            <span id="hud-weather">Clear</span>
           </div>
         </div>
         <div class="h-7 w-px bg-slate-700/80 mx-0.5"></div>
         <div class="leading-tight">
-          <div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Balance</div>
+          <div class="text-[9px] sm:text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Balance</div>
           <div id="hud-money" class="font-mono-num font-extrabold text-sm sm:text-base text-emerald-400">$25,000</div>
         </div>
       </div>
 
-      <!-- Center: Crusher Buffer & Refined Ingot Silos -->
-      <div class="pointer-events-auto hidden md:flex items-center gap-2 bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-2xl px-3 py-1.5 shadow-xl text-xs">
+      <!-- Center: Crusher Buffer & Refined Ingot Silos (Desktop/Tablet) -->
+      <div class="pointer-events-auto hidden lg:flex items-center gap-2 bg-slate-900/92 backdrop-blur-md border border-slate-700/85 rounded-2xl px-3 py-1.5 shadow-xl text-xs">
         <div class="flex items-center gap-1.5 pr-2 border-r border-slate-700">
-          <span>⚙️</span>
+          <span id="hud-crusher-icon" class="inline-flex"></span>
           <div>
             <div class="text-[10px] text-slate-400 uppercase font-bold">Crusher</div>
             <div id="hud-crusher" class="font-mono-num font-bold text-amber-300">0/60t</div>
@@ -176,50 +180,63 @@
       </div>
 
       <!-- Right: Quick Actions (Update, Sound, New Game, Saves, Guide) -->
-      <div class="pointer-events-auto flex items-center gap-1.5 bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-2xl p-1.5 shadow-xl">
+      <div class="pointer-events-auto flex items-center gap-1 sm:gap-1.5 bg-slate-900/92 backdrop-blur-md border border-slate-700/85 rounded-2xl p-1 sm:p-1.5 shadow-xl">
         <button id="btn-check-update" onclick="appUpdater.checkForUpdates(true)" title="Fetch latest version without losing saved progress"
-          class="btn-industrial flex items-center gap-1 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-600 rounded-xl px-2.5 py-1.5 text-xs font-bold">
-          <span id="update-icon">🔄</span>
+          class="btn-industrial flex items-center gap-1 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-600 rounded-xl px-2 sm:px-2.5 py-1.5 text-xs font-bold">
+          <svg id="update-icon" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/>
+          </svg>
           <span class="hidden sm:inline" id="update-label">Update</span>
         </button>
 
         <button id="btn-sound" onclick="soundFX.toggle()" title="Toggle Sound Effects"
-          class="btn-industrial bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 rounded-xl p-1.5 px-2.5 text-xs font-bold">
-          🔊
+          class="btn-industrial bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 rounded-xl p-1.5 px-2 text-xs font-bold">
+          <svg id="sound-icon-on" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+          </svg>
+          <svg id="sound-icon-off" class="w-3.5 h-3.5 hidden text-rose-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>
+          </svg>
         </button>
 
         <button id="btn-new-game" onclick="ui.openModal('modal-newgame')" title="Generate a brand new procedural mine site"
-          class="btn-industrial flex items-center gap-1 bg-rose-600 hover:bg-rose-500 text-white rounded-xl px-2.5 py-1.5 text-xs font-bold">
-          <span>✨</span>
+          class="btn-industrial flex items-center gap-1 bg-rose-600 hover:bg-rose-500 text-white rounded-xl px-2 sm:px-2.5 py-1.5 text-xs font-bold">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
           <span class="hidden sm:inline">New Game</span>
         </button>
 
-        <button onclick="ui.openModal('modal-saves')" title="Save or Load Quarry Slots"
-          class="btn-industrial flex items-center gap-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl px-2.5 py-1.5 text-xs font-bold">
-          <span>💾</span>
+        <button id="top-btn-saves" onclick="ui.openModal('modal-saves')" title="Save or Load Quarry Slots"
+          class="btn-industrial flex items-center gap-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl px-2 sm:px-2.5 py-1.5 text-xs font-bold">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+          </svg>
           <span class="hidden sm:inline">Saves</span>
         </button>
 
         <button id="btn-guide" onclick="ui.openModal('modal-help')" title="Interactive Tutorial & How to Play"
-          class="btn-industrial flex items-center gap-1 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl px-2.5 py-1.5 text-xs font-extrabold">
-          <span>📖</span>
+          class="btn-industrial flex items-center gap-1 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl px-2 sm:px-2.5 py-1.5 text-xs font-extrabold">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+          </svg>
           <span class="hidden sm:inline">Guide</span>
         </button>
       </div>
     </div>
 
-    <!-- Secondary Row: Active Contract Pill -->
+    <!-- Secondary Row: Mobile Crusher/Silo Summary + Active Contract Pill -->
     <div class="max-w-7xl mx-auto mt-1.5 flex items-center justify-between gap-2">
-      <div class="pointer-events-auto md:hidden flex items-center gap-1.5 bg-slate-900/85 backdrop-blur-md border border-slate-700/80 rounded-xl px-2.5 py-1 text-[11px] font-mono-num">
-        <span class="text-amber-300 font-bold" id="hud-crusher-mobile">⚙️ 0/60t</span>
+      <div class="pointer-events-auto lg:hidden flex items-center gap-1.5 bg-slate-900/90 backdrop-blur-md border border-slate-700/85 rounded-xl px-2.5 py-1 text-[11px] font-mono-num">
+        <span class="text-amber-300 font-bold" id="hud-crusher-mobile">Crusher 0/60t</span>
         <span class="text-slate-600">|</span>
         <span class="text-slate-300" id="hud-silos-mobile">Fe:2 Cu:1 Au:0 Li:0</span>
       </div>
 
       <button onclick="ui.openModal('modal-contracts')"
-        class="pointer-events-auto ml-auto flex items-center gap-2 bg-slate-900/90 hover:bg-slate-800/95 backdrop-blur-md border border-amber-500/40 rounded-xl px-3 py-1 text-xs shadow-lg transition">
-        <span>📋</span>
-        <span id="hud-contract-text" class="font-semibold text-amber-200 truncate max-w-[200px] sm:max-w-xs">Contract: Loading...</span>
+        class="pointer-events-auto ml-auto flex items-center gap-1.5 bg-slate-900/92 hover:bg-slate-800/95 backdrop-blur-md border border-amber-500/45 rounded-xl px-2.5 sm:px-3 py-1 text-[11px] sm:text-xs shadow-lg transition">
+        <span class="w-2 h-2 rounded-full bg-amber-400 shrink-0"></span>
+        <span id="hud-contract-text" class="font-semibold text-amber-200 truncate max-w-[175px] sm:max-w-xs">Contract: Loading...</span>
       </button>
     </div>
   </header>
@@ -228,10 +245,10 @@
   <div id="toast-container" class="fixed top-24 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-2 pointer-events-none w-full max-w-md px-4"></div>
 
   <!-- INTERACTIVE STEP-BY-STEP ONBOARDING TUTORIAL BANNER -->
-  <div id="tutorial-card" class="hidden fixed top-24 right-3 sm:right-5 z-30 pointer-events-auto w-[calc(100vw-1.5rem)] max-w-sm bg-slate-900/95 backdrop-blur-md border-2 border-amber-400 rounded-3xl p-4 shadow-2xl transition-all">
+  <div id="tutorial-card" class="hidden fixed top-24 right-2.5 sm:right-5 z-30 pointer-events-auto w-[calc(100vw-1.25rem)] max-w-sm bg-slate-900/95 backdrop-blur-md border-2 border-amber-400 rounded-3xl p-3.5 sm:p-4 shadow-2xl transition-all">
     <div class="flex items-center justify-between gap-2 mb-2">
       <div class="flex items-center gap-2">
-        <span class="bg-amber-500 text-slate-950 font-black text-[11px] px-2 py-0.5 rounded-lg uppercase tracking-wider">Tutorial</span>
+        <span class="bg-amber-500 text-slate-950 font-black text-[10px] sm:text-[11px] px-2 py-0.5 rounded-lg uppercase tracking-wider">Tutorial</span>
         <span id="tut-step-badge" class="font-mono-num text-xs font-bold text-amber-300">Step 1 / 5</span>
       </div>
       <button onclick="tutorial.skip()" class="text-[11px] font-bold text-slate-400 hover:text-white px-2 py-0.5 rounded-lg bg-slate-800">
@@ -239,37 +256,53 @@
       </button>
     </div>
 
-    <!-- Step Progress Bar -->
     <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden mb-2.5">
       <div id="tut-progress-bar" class="bg-amber-400 h-full transition-all duration-300" style="width: 20%"></div>
     </div>
 
-    <h3 id="tut-title" class="font-black text-sm sm:text-base text-white mb-1">1. Excavate the Pit Face</h3>
-    <p id="tut-desc" class="text-xs text-slate-300 leading-relaxed mb-3">
-      Your Excavator breaks rock walls into ore piles. Select the Excavator or watch it dig!
-    </p>
+    <div class="flex items-start gap-2.5 mb-2.5">
+      <div id="tut-icon-slot" class="shrink-0 mt-0.5"></div>
+      <div>
+        <h3 id="tut-title" class="font-black text-sm sm:text-base text-white leading-snug">1. Select Your Excavator</h3>
+        <p id="tut-desc" class="text-xs text-slate-300 leading-relaxed mt-0.5">
+          Tap the pulsing Excavator in the pit (or open Fleet below) to inspect your digging rig!
+        </p>
+      </div>
+    </div>
 
     <div class="flex items-center justify-between gap-2">
-      <span id="tut-status" class="text-[11px] font-bold text-cyan-300">⏳ Waiting for action...</span>
+      <span id="tut-status" class="text-[11px] font-bold text-cyan-300 truncate">Waiting for your action...</span>
       <button id="tut-next-btn" onclick="tutorial.nextStep()"
-        class="btn-industrial bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs px-3.5 py-1.5 rounded-xl">
+        class="btn-industrial shrink-0 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs px-3.5 py-1.5 rounded-xl">
         Next Step →
       </button>
     </div>
   </div>
 
+  <!-- FLEET QUICK-DRAWER POPOVER (Opens when tapping Fleet in Bottom Dock) -->
+  <div id="fleet-drawer" class="hidden fixed bottom-[calc(4.4rem+var(--safe-bottom))] left-2.5 sm:left-4 z-30 pointer-events-auto w-[calc(100vw-1.25rem)] max-w-sm bg-slate-900/95 backdrop-blur-md border border-slate-700 rounded-3xl p-3.5 shadow-2xl">
+    <div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-800">
+      <div class="flex items-center gap-2">
+        <span class="font-black text-xs uppercase tracking-wider text-amber-400">Active Quarry Fleet</span>
+        <span id="fleet-drawer-count" class="text-[11px] font-mono-num bg-slate-800 text-slate-300 px-2 py-0.5 rounded-lg">3 Units</span>
+      </div>
+      <button onclick="ui.toggleFleetDrawer(false)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl w-7 h-7 text-xs font-bold">✕</button>
+    </div>
+    <div id="fleet-drawer-list" class="space-y-1.5 max-h-56 overflow-y-auto pr-0.5"></div>
+  </div>
+
   <!-- SELECTED MACHINE CONTROL CARD (Bottom Left) -->
-  <div id="selected-vehicle-card" class="fixed bottom-[calc(4.75rem+var(--safe-bottom))] left-2.5 sm:left-4 z-20 pointer-events-auto bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-2xl p-2.5 sm:p-3 shadow-2xl w-[235px] sm:w-[275px] transition-all">
-    <div class="flex items-center justify-between gap-2">
+  <div id="selected-vehicle-card" class="fixed bottom-[calc(4.35rem+var(--safe-bottom))] left-2 sm:left-4 z-20 pointer-events-auto bg-slate-900/92 backdrop-blur-md border border-slate-700/85 rounded-2xl p-2 sm:p-3 shadow-2xl w-[210px] sm:w-[275px] transition-all">
+    <div class="flex items-center justify-between gap-1.5">
       <div class="flex items-center gap-2 min-w-0">
-        <span id="sel-v-icon" class="text-xl sm:text-2xl">🚜</span>
+        <div id="sel-v-icon" class="shrink-0 flex items-center justify-center"></div>
         <div class="min-w-0">
           <div id="sel-v-name" class="font-extrabold text-xs sm:text-sm text-white truncate">Excavator #1</div>
-          <div id="sel-v-state" class="text-[11px] text-cyan-300 truncate font-medium">🤖 Auto-Shuttle Active</div>
+          <div id="sel-v-state" class="text-[10px] sm:text-[11px] text-cyan-300 truncate font-medium">Auto-Shuttle Active</div>
         </div>
       </div>
       <button id="btn-toggle-ai" onclick="game.toggleSelectedAI()"
-        class="btn-industrial shrink-0 px-2.5 py-1 rounded-xl text-[11px] font-extrabold bg-cyan-500 text-slate-950">
+        class="btn-industrial shrink-0 px-2 sm:px-2.5 py-1 rounded-xl text-[10px] sm:text-[11px] font-extrabold bg-cyan-500 text-slate-950">
         Auto: ON
       </button>
     </div>
@@ -285,50 +318,58 @@
       </div>
     </div>
 
-    <div class="mt-2 flex items-center justify-between text-[10px] text-slate-400">
-      <span>Tap map to route • WASD / Space</span>
-      <button onclick="game.triggerManualAction()" class="text-amber-400 font-bold hover:underline">Action ⚡</button>
+    <div class="mt-1.5 flex items-center justify-between text-[10px] text-slate-400">
+      <span class="truncate">Tap map to route • WASD</span>
+      <button onclick="game.triggerManualAction()" class="text-amber-400 font-bold hover:underline shrink-0 ml-1">Action ⚡</button>
     </div>
   </div>
 
-  <!-- MOBILE VIRTUAL JOYSTICK & ACTION BUTTON (Visible on Touch Devices) -->
-  <div id="mobile-controls" class="fixed bottom-[calc(4.75rem+var(--safe-bottom))] right-3 z-20 pointer-events-none flex items-end gap-3 md:hidden">
+  <!-- MOBILE VIRTUAL JOYSTICK & ACTION BUTTON (Visible on Touch / Small Screens) -->
+  <div id="mobile-controls" class="fixed bottom-[calc(4.35rem+var(--safe-bottom))] right-2.5 z-20 pointer-events-none flex items-end gap-2 md:hidden">
     <button id="btn-mobile-action" ontouchstart="game.triggerManualAction(); event.preventDefault();" onclick="game.triggerManualAction()"
-      class="pointer-events-auto w-14 h-14 rounded-2xl bg-amber-500/90 active:bg-amber-400 text-slate-950 font-black text-xs shadow-2xl border-2 border-amber-300 flex flex-col items-center justify-center">
-      <span class="text-lg leading-none">⛏️</span>
-      <span class="text-[9px] uppercase mt-0.5">Work</span>
+      class="pointer-events-auto w-12 h-12 rounded-2xl bg-amber-500/95 active:bg-amber-400 text-slate-950 font-black text-xs shadow-2xl border-2 border-amber-300 flex flex-col items-center justify-center">
+      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6">
+        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+      </svg>
+      <span class="text-[8px] uppercase font-black mt-0.5">Work</span>
     </button>
 
-    <div id="joystick-zone" class="pointer-events-auto relative w-24 h-24 rounded-full bg-slate-900/75 border-2 border-slate-600/80 backdrop-blur-md flex items-center justify-center shadow-2xl">
-      <div id="joystick-knob" class="w-10 h-10 rounded-full bg-amber-400/90 border-2 border-white shadow-lg pointer-events-none transition-transform duration-75"></div>
+    <div id="joystick-zone" class="pointer-events-auto relative w-20 h-20 rounded-full bg-slate-900/80 border-2 border-slate-600/85 backdrop-blur-md flex items-center justify-center shadow-2xl">
+      <div id="joystick-knob" class="w-9 h-9 rounded-full bg-amber-400/95 border-2 border-white shadow-lg pointer-events-none transition-transform duration-75"></div>
     </div>
   </div>
 
   <!-- BOTTOM NAVIGATION DOCK -->
-  <nav class="fixed bottom-0 left-0 right-0 z-20 pointer-events-none px-2 sm:px-4 pb-[calc(0.5rem+var(--safe-bottom))]">
-    <div class="max-w-2xl mx-auto pointer-events-auto flex items-center justify-between gap-1.5 bg-slate-900/95 backdrop-blur-md border border-slate-700/90 rounded-2xl p-1.5 shadow-2xl overflow-x-auto">
-      <button onclick="game.cycleVehicle()" class="btn-industrial flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-600 rounded-xl px-3 py-2 text-xs font-bold shrink-0">
-        <span>🚜</span>
+  <nav class="fixed bottom-0 left-0 right-0 z-20 pointer-events-none px-2 sm:px-4 pb-[calc(0.45rem+var(--safe-bottom))]">
+    <div class="max-w-2xl mx-auto pointer-events-auto flex items-center justify-between gap-1 sm:gap-1.5 bg-slate-900/95 backdrop-blur-md border border-slate-700/90 rounded-2xl p-1 sm:p-1.5 shadow-2xl">
+      <button id="nav-btn-fleet" onclick="ui.toggleFleetDrawer()" class="btn-industrial flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-600 rounded-xl px-2.5 sm:px-3 py-2 text-[11px] sm:text-xs font-bold shrink-0">
+        <span id="dock-fleet-icon" class="inline-flex"></span>
         <span>Fleet (<span id="nav-v-count">3</span>)</span>
       </button>
 
-      <button id="nav-btn-garage" onclick="ui.openModal('modal-garage')" class="btn-industrial flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl px-3 py-2 text-xs font-extrabold shrink-0">
-        <span>🔧</span>
-        <span>Workshop & Buy</span>
+      <button id="nav-btn-garage" onclick="ui.openModal('modal-garage')" class="btn-industrial flex items-center justify-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl px-2.5 sm:px-3 py-2 text-[11px] sm:text-xs font-extrabold shrink-0">
+        <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+        </svg>
+        <span>Workshop<span class="hidden sm:inline"> & Buy</span></span>
       </button>
 
-      <button id="nav-btn-staff" onclick="ui.openModal('modal-staff')" class="btn-industrial flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-600 rounded-xl px-3 py-2 text-xs font-bold shrink-0">
-        <span>👷</span>
+      <button id="nav-btn-staff" onclick="ui.openModal('modal-staff')" class="btn-industrial flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-600 rounded-xl px-2.5 sm:px-3 py-2 text-[11px] sm:text-xs font-bold shrink-0">
+        <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
         <span>Crew</span>
       </button>
 
-      <button id="nav-btn-market" onclick="ui.openModal('modal-market')" class="btn-industrial flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl px-3 py-2 text-xs font-extrabold shrink-0">
-        <span>🚛</span>
-        <span>Export & Market</span>
+      <button id="nav-btn-market" onclick="ui.openModal('modal-market')" class="btn-industrial flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl px-2.5 sm:px-3 py-2 text-[11px] sm:text-xs font-extrabold shrink-0">
+        <span id="dock-market-icon" class="inline-flex"></span>
+        <span>Market</span>
       </button>
 
       <button onclick="game.centerCameraOnSelected()" title="Center camera on selected machine" class="btn-industrial bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600 rounded-xl p-2 text-xs font-bold shrink-0">
-        🎯
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+          <circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/>
+        </svg>
       </button>
     </div>
   </nav>
@@ -341,7 +382,11 @@
       <div class="hazard-stripe h-2 w-full"></div>
       <div class="p-5 space-y-4">
         <div class="flex items-center gap-3">
-          <div class="w-11 h-11 rounded-2xl bg-rose-500/20 border border-rose-500/50 flex items-center justify-center text-2xl shrink-0">✨</div>
+          <div class="w-11 h-11 rounded-2xl bg-rose-500/20 border border-rose-500/50 flex items-center justify-center text-rose-400 shrink-0">
+            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+            </svg>
+          </div>
           <div>
             <h2 class="text-lg font-black text-white">Start New Quarry Site?</h2>
             <p class="text-xs text-slate-400">Procedural Terrain & Mineral Vein Generator</p>
@@ -355,9 +400,9 @@
             class="btn-industrial w-full sm:w-auto bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs px-4 py-2.5 rounded-xl border border-slate-600">
             Cancel
           </button>
-          <button onclick="game.generateNewSite(Date.now()); ui.closeModals();"
+          <button onclick="game.generateNewSite(Date.now()); ui.closeModals(); tutorial.start(true);"
             class="btn-industrial w-full sm:w-auto bg-rose-600 hover:bg-rose-500 text-white font-black text-xs px-5 py-2.5 rounded-xl">
-            ✨ Generate New Site
+            Generate New Site
           </button>
         </div>
       </div>
@@ -368,62 +413,22 @@
   <div id="modal-help" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 backdrop-blur-md p-3 sm:p-6">
     <div class="bg-slate-900 border-2 border-amber-500/70 rounded-3xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
       <div class="hazard-stripe h-2.5 w-full"></div>
-      <div class="flex items-center justify-between px-5 py-4 border-b border-slate-800">
+      <div class="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b border-slate-800">
         <div class="flex items-center gap-2.5">
-          <span class="text-2xl">⛏️</span>
+          <div id="help-header-icon" class="shrink-0"></div>
           <div>
-            <h2 class="text-lg sm:text-xl font-black text-amber-400 tracking-tight">Welcome to MINE MASTER</h2>
-            <p class="text-xs text-slate-400">Heavy Quarry Operations, Ore Processing & Fleet Logistics</p>
+            <h2 class="text-base sm:text-xl font-black text-amber-400 tracking-tight">Welcome to MINE MASTER</h2>
+            <p class="text-[11px] sm:text-xs text-slate-400">Heavy Quarry Operations, Ore Processing & Fleet Logistics</p>
           </div>
         </div>
-        <button onclick="ui.closeModals()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl w-9 h-9 font-bold">✕</button>
+        <button onclick="ui.closeModals()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl w-9 h-9 font-bold shrink-0">✕</button>
       </div>
 
-      <div class="p-4 sm:p-5 overflow-y-auto space-y-3.5 text-xs sm:text-sm text-slate-300 leading-relaxed">
-        <!-- Mission Goal -->
-        <div class="bg-gradient-to-r from-amber-500/15 to-emerald-500/10 border border-amber-500/40 rounded-2xl p-3.5">
-          <h3 class="font-black text-amber-400 text-sm uppercase tracking-wide mb-1">🏆 Your Goal</h3>
-          <p>
-            Turn a rugged open-pit quarry into a high-output mining empire! Dig deep through Dirt, Limestone, Granite, and purple Basalt to uncover rich seams of <b>Iron, Copper, Gold, Lithium</b>, and rare <b>Meteorites & Crystal Geodes</b>. Fulfill industrial contracts, upgrade hydraulics, and maximize profits.
-          </p>
-        </div>
-
-        <!-- Logistics Flow -->
-        <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-3.5">
-          <h3 class="font-extrabold text-cyan-300 mb-1.5">🔄 How the Quarry Logistics Loop Works</h3>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-            <div class="bg-slate-900/90 border border-slate-700/80 rounded-xl p-2.5">
-              <div class="font-bold text-amber-400">1. 🚜 Excavator (Pit Face)</div>
-              <p class="text-slate-400 mt-0.5">Breaks rock seams along the quarry wall and piles raw ore onto the pit floor. Upgrade Hydraulics to break purple Basalt!</p>
-            </div>
-            <div class="bg-slate-900/90 border border-slate-700/80 rounded-xl p-2.5">
-              <div class="font-bold text-orange-400">2. 🏗️ Wheel Loader (Pit Load Zone)</div>
-              <p class="text-slate-400 mt-0.5">Scoops loose ore piles and loads them into the Articulated Dumper (or directly into the Crusher).</p>
-            </div>
-            <div class="bg-slate-900/90 border border-slate-700/80 rounded-xl p-2.5">
-              <div class="font-bold text-yellow-300">3. 🚛 Articulated Dumper (Smart A* Haul)</div>
-              <p class="text-slate-400 mt-0.5">Uses smart pathfinding to shuttle heavy 24t+ loads back and forth from the Pit Load Zone to the <b>Crusher Plant</b>.</p>
-            </div>
-            <div class="bg-slate-900/90 border border-slate-700/80 rounded-xl p-2.5">
-              <div class="font-bold text-emerald-400">4. ⚙️ Crusher & Export Semi-Truck</div>
-              <p class="text-slate-400 mt-0.5">Refines raw rock into metal ingots, loads the Export Semi-Truck via crane, and sells for cash!</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Controls -->
-        <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-3.5">
-          <h3 class="font-extrabold text-emerald-400 mb-1">🎮 Intuitive Controls</h3>
-          <ul class="list-disc list-inside space-y-1 text-xs text-slate-300">
-            <li><b>Smart Auto-Shuttle:</b> Your starter crew automatically navigates around obstacles and runs the pit-to-crusher loop!</li>
-            <li><b>Tap / Click to Command:</b> Tap any machine to select it, then tap anywhere on the map to route it there automatically.</li>
-            <li><b>Manual Override:</b> Drive any selected machine directly with <b>WASD / Arrow Keys + Spacebar</b> (or the on-screen <b>Joystick + Action Button</b> on iPad/iPhone).</li>
-          </ul>
-        </div>
+      <div id="help-modal-body" class="p-4 sm:p-5 overflow-y-auto space-y-3.5 text-xs sm:text-sm text-slate-300 leading-relaxed">
+        <!-- Populated dynamically with custom SVG icons -->
       </div>
 
-      <!-- Footer with Startup Checkbox, Interactive Tutorial & Start Button -->
-      <div class="px-5 py-3.5 bg-slate-950/90 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div class="px-4 sm:px-5 py-3.5 bg-slate-950/90 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
         <label class="flex items-center gap-2.5 cursor-pointer text-xs text-slate-300 select-none">
           <input id="chk-show-startup" type="checkbox" checked onchange="ui.toggleStartupPref(this.checked)"
             class="w-4 h-4 rounded accent-amber-500 cursor-pointer" />
@@ -432,11 +437,11 @@
         <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
           <button onclick="ui.closeModals(); tutorial.start(true);"
             class="btn-industrial flex-1 sm:flex-initial bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-extrabold text-xs sm:text-sm px-4 py-2.5 rounded-2xl">
-            🎓 Interactive Tutorial
+            Start Interactive Tutorial
           </button>
           <button onclick="ui.closeModals()"
             class="btn-industrial flex-1 sm:flex-initial bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs sm:text-sm px-5 py-2.5 rounded-2xl">
-            🚀 Play Now
+            Play Now
           </button>
         </div>
       </div>
@@ -446,12 +451,20 @@
   <!-- WORKSHOP & FLEET BUY MODAL -->
   <div id="modal-garage" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 backdrop-blur-md p-3 sm:p-6">
     <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-3xl max-h-[88vh] flex flex-col shadow-2xl overflow-hidden">
-      <div class="flex items-center justify-between px-5 py-4 border-b border-slate-800">
-        <div class="flex items-center gap-2">
-          <span class="text-xl">🔧</span>
-          <h2 class="text-lg font-black text-amber-400">Workshop & Heavy Fleet</h2>
+      <div class="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b border-slate-800 gap-2">
+        <div class="flex items-center gap-2 min-w-0">
+          <svg class="w-5 h-5 text-amber-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+          </svg>
+          <h2 class="text-base sm:text-lg font-black text-amber-400 truncate">Workshop & Heavy Fleet</h2>
         </div>
-        <button onclick="ui.closeModals()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl w-9 h-9 font-bold">✕</button>
+        <div class="flex items-center gap-2 shrink-0">
+          <div class="bg-slate-800 border border-slate-700 rounded-xl px-2.5 py-1 text-xs font-mono-num">
+            <span class="text-slate-400 mr-1">Balance:</span>
+            <span id="modal-garage-balance" class="font-extrabold text-emerald-400">$25,000</span>
+          </div>
+          <button onclick="ui.closeModals()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl w-9 h-9 font-bold">✕</button>
+        </div>
       </div>
       <div id="garage-content" class="p-4 sm:p-5 overflow-y-auto space-y-4"></div>
     </div>
@@ -460,12 +473,20 @@
   <!-- CREW & SPECIALISTS MODAL -->
   <div id="modal-staff" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 backdrop-blur-md p-3 sm:p-6">
     <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-2xl max-h-[88vh] flex flex-col shadow-2xl overflow-hidden">
-      <div class="flex items-center justify-between px-5 py-4 border-b border-slate-800">
-        <div class="flex items-center gap-2">
-          <span class="text-xl">👷</span>
-          <h2 class="text-lg font-black text-cyan-300">Crew & Mining Specialists</h2>
+      <div class="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b border-slate-800 gap-2">
+        <div class="flex items-center gap-2 min-w-0">
+          <svg class="w-5 h-5 text-cyan-300 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+          <h2 class="text-base sm:text-lg font-black text-cyan-300 truncate">Crew & Mining Specialists</h2>
         </div>
-        <button onclick="ui.closeModals()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl w-9 h-9 font-bold">✕</button>
+        <div class="flex items-center gap-2 shrink-0">
+          <div class="bg-slate-800 border border-slate-700 rounded-xl px-2.5 py-1 text-xs font-mono-num">
+            <span class="text-slate-400 mr-1">Balance:</span>
+            <span id="modal-staff-balance" class="font-extrabold text-emerald-400">$25,000</span>
+          </div>
+          <button onclick="ui.closeModals()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl w-9 h-9 font-bold">✕</button>
+        </div>
       </div>
       <div id="staff-content" class="p-4 sm:p-5 overflow-y-auto space-y-3"></div>
     </div>
@@ -474,12 +495,18 @@
   <!-- EXPORT & COMMODITY MARKET MODAL -->
   <div id="modal-market" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 backdrop-blur-md p-3 sm:p-6">
     <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-2xl max-h-[88vh] flex flex-col shadow-2xl overflow-hidden">
-      <div class="flex items-center justify-between px-5 py-4 border-b border-slate-800">
-        <div class="flex items-center gap-2">
-          <span class="text-xl">🚛</span>
-          <h2 class="text-lg font-black text-emerald-400">Export Bay & Commodity Market</h2>
+      <div class="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b border-slate-800 gap-2">
+        <div class="flex items-center gap-2 min-w-0">
+          <span id="modal-market-header-icon" class="shrink-0"></span>
+          <h2 class="text-base sm:text-lg font-black text-emerald-400 truncate">Export Bay & Commodity Market</h2>
         </div>
-        <button onclick="ui.closeModals()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl w-9 h-9 font-bold">✕</button>
+        <div class="flex items-center gap-2 shrink-0">
+          <div class="bg-slate-800 border border-slate-700 rounded-xl px-2.5 py-1 text-xs font-mono-num">
+            <span class="text-slate-400 mr-1">Balance:</span>
+            <span id="modal-market-balance" class="font-extrabold text-emerald-400">$25,000</span>
+          </div>
+          <button onclick="ui.closeModals()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl w-9 h-9 font-bold">✕</button>
+        </div>
       </div>
       <div id="market-content" class="p-4 sm:p-5 overflow-y-auto space-y-4"></div>
     </div>
@@ -488,10 +515,12 @@
   <!-- CONTRACTS MODAL -->
   <div id="modal-contracts" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 backdrop-blur-md p-3 sm:p-6">
     <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-xl max-h-[88vh] flex flex-col shadow-2xl overflow-hidden">
-      <div class="flex items-center justify-between px-5 py-4 border-b border-slate-800">
+      <div class="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b border-slate-800">
         <div class="flex items-center gap-2">
-          <span class="text-xl">📋</span>
-          <h2 class="text-lg font-black text-amber-300">Active Industrial Contract</h2>
+          <svg class="w-5 h-5 text-amber-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+          </svg>
+          <h2 class="text-base sm:text-lg font-black text-amber-300">Active Industrial Contract</h2>
         </div>
         <button onclick="ui.closeModals()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl w-9 h-9 font-bold">✕</button>
       </div>
@@ -502,10 +531,12 @@
   <!-- SAVE SLOTS & HOME SCREEN ICON MODAL -->
   <div id="modal-saves" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 backdrop-blur-md p-3 sm:p-6">
     <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-2xl max-h-[88vh] flex flex-col shadow-2xl overflow-hidden">
-      <div class="flex items-center justify-between px-5 py-4 border-b border-slate-800">
+      <div class="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b border-slate-800">
         <div class="flex items-center gap-2">
-          <span class="text-xl">💾</span>
-          <h2 class="text-lg font-black text-indigo-400">Quarry Saves & Home Screen App</h2>
+          <svg class="w-5 h-5 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+          </svg>
+          <h2 class="text-base sm:text-lg font-black text-indigo-400">Quarry Saves & Home Screen App</h2>
         </div>
         <button onclick="ui.closeModals()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl w-9 h-9 font-bold">✕</button>
       </div>
@@ -515,14 +546,140 @@
 
   <!-- ==================== JAVASCRIPT GAME ENGINE ==================== -->
   <script>
-    const APP_VERSION = '3.1.0';
+    const APP_VERSION = '4.0.0';
     const STORAGE_KEYS = {
-      AUTOSAVE: 'minemaster_autosave_v3',
-      SAVELIST: 'minemaster_savelist_v3',
+      AUTOSAVE: 'minemaster_autosave_v4',
+      SAVELIST: 'minemaster_savelist_v4',
       VERSION: 'minemaster_installed_version',
-      SHOW_STARTUP: 'minemaster_show_startup_v3',
-      TUTORIAL_DONE: 'minemaster_tutorial_done_v3'
+      SHOW_STARTUP: 'minemaster_show_startup_v4',
+      TUTORIAL_DONE: 'minemaster_tutorial_done_v4'
     };
+
+    // =========================================================================
+    // 0. CUSTOM INDUSTRIAL SVG ILLUSTRATIONS (ZERO MISMATCHED EMOJIS)
+    // =========================================================================
+    function getMachineSVG(type, size = 36) {
+      const s = size;
+      if (type === 'excavator') {
+        // Yellow Crawler Excavator with tracks, cab, articulated boom, stick, and toothed bucket
+        return `
+          <svg width="${s}" height="${s}" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" class="shrink-0">
+            <!-- Crawler Tracks -->
+            <rect x="6" y="45" width="36" height="11" rx="5.5" fill="#1e293b" stroke="#475569" stroke-width="2"/>
+            <circle cx="12" cy="50.5" r="2.8" fill="#94a3b8"/>
+            <circle cx="24" cy="50.5" r="2.8" fill="#94a3b8"/>
+            <circle cx="36" cy="50.5" r="2.8" fill="#94a3b8"/>
+            <!-- Slewing Ring -->
+            <rect x="14" y="41" width="20" height="4" rx="1.5" fill="#334155"/>
+            <!-- Counterweight & Engine Deck -->
+            <rect x="6" y="26" width="18" height="15" rx="3" fill="#d97706"/>
+            <rect x="6" y="29" width="6" height="9" rx="1" fill="#1e293b"/>
+            <!-- Operator Cab -->
+            <path d="M22 20H34L37 31V41H22V20Z" fill="#f59e0b" stroke="#b45309" stroke-width="1.5"/>
+            <path d="M25 23H32.5L34.5 30H25V23Z" fill="#38bdf8" fill-opacity="0.85"/>
+            <!-- Articulated Boom & Hydraulic Cylinder -->
+            <path d="M34 31L46 13L51 16L38 35Z" fill="#f59e0b" stroke="#b45309" stroke-width="1.3"/>
+            <line x1="36" y1="24" x2="43" y2="14" stroke="#cbd5e1" stroke-width="2.2" stroke-linecap="round"/>
+            <!-- Dipper Stick -->
+            <path d="M47 14L55 32L51 34L44 16Z" fill="#fbbf24" stroke="#b45309" stroke-width="1.3"/>
+            <!-- Toothed Digging Bucket -->
+            <path d="M51 33L59 33L57 42L48 41L51 33Z" fill="#334155" stroke="#94a3b8" stroke-width="1.3"/>
+            <path d="M48 41L45 43M51 41.5L49 44M54 41.8L53 44" stroke="#e2e8f0" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        `;
+      }
+
+      if (type === 'loader') {
+        // Heavy Yellow Articulated Wheel Loader with large treaded tires, cab, lift arms & wide scoop
+        return `
+          <svg width="${s}" height="${s}" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" class="shrink-0">
+            <!-- Rear & Front Chassis -->
+            <rect x="8" y="30" width="22" height="12" rx="3" fill="#d97706"/>
+            <rect x="28" y="32" width="16" height="10" rx="2" fill="#f59e0b"/>
+            <!-- Operator Cab -->
+            <path d="M18 17H31L34 30H18V17Z" fill="#fbbf24" stroke="#b45309" stroke-width="1.5"/>
+            <rect x="21" y="20" width="9" height="8" rx="1.5" fill="#38bdf8" fill-opacity="0.85"/>
+            <!-- Hydraulic Lift Arms -->
+            <path d="M32 25L50 36L48 40L30 29Z" fill="#f59e0b" stroke="#b45309" stroke-width="1.3"/>
+            <line x1="33" y1="32" x2="46" y2="39" stroke="#cbd5e1" stroke-width="2.2" stroke-linecap="round"/>
+            <!-- Wide Front Scoop Bucket -->
+            <path d="M47 32L58 34L55 47L44 46L47 32Z" fill="#334155" stroke="#94a3b8" stroke-width="1.5"/>
+            <line x1="55" y1="47" x2="60" y2="47" stroke="#e2e8f0" stroke-width="2" stroke-linecap="round"/>
+            <!-- Heavy Treaded Tires -->
+            <circle cx="15" cy="46" r="8.5" fill="#0f172a" stroke="#475569" stroke-width="2"/>
+            <circle cx="15" cy="46" r="3.8" fill="#f59e0b"/>
+            <circle cx="36" cy="46" r="8.5" fill="#0f172a" stroke="#475569" stroke-width="2"/>
+            <circle cx="36" cy="46" r="3.8" fill="#f59e0b"/>
+          </svg>
+        `;
+      }
+
+      if (type === 'dumper') {
+        // Heavy Articulated Rock Dumper (A40/A60 style) with 6-wheel chassis, front cab & angled rock dump bed
+        return `
+          <svg width="${s}" height="${s}" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" class="shrink-0">
+            <!-- Chassis Frame -->
+            <rect x="6" y="39" width="50" height="5" rx="2" fill="#334155"/>
+            <!-- Angled Heavy Rock Dump Bed -->
+            <path d="M5 20L35 23L37 39H8L5 20Z" fill="#eab308" stroke="#a16207" stroke-width="1.5"/>
+            <path d="M4 20H11L9 24H4V20Z" fill="#f59e0b"/>
+            <!-- Ore Mound inside Bed -->
+            <path d="M10 20C14 15 26 15 32 22H10V20Z" fill="#f97316"/>
+            <!-- Hydraulic Hoist Cylinder -->
+            <line x1="25" y1="39" x2="29" y2="27" stroke="#cbd5e1" stroke-width="2.4" stroke-linecap="round"/>
+            <!-- Front Tractor Cab & Hood -->
+            <path d="M40 21H51L53 31H40V21Z" fill="#f59e0b" stroke="#b45309" stroke-width="1.4"/>
+            <rect x="43" y="23" width="7" height="6" rx="1" fill="#38bdf8" fill-opacity="0.85"/>
+            <rect x="40" y="31" width="18" height="9" rx="2" fill="#d97706"/>
+            <!-- 6-Wheel Heavy Dump Tires -->
+            <circle cx="13" cy="47" r="6.8" fill="#0f172a" stroke="#475569" stroke-width="1.8"/>
+            <circle cx="13" cy="47" r="2.8" fill="#eab308"/>
+            <circle cx="28" cy="47" r="6.8" fill="#0f172a" stroke="#475569" stroke-width="1.8"/>
+            <circle cx="28" cy="47" r="2.8" fill="#eab308"/>
+            <circle cx="48" cy="47" r="6.8" fill="#0f172a" stroke="#475569" stroke-width="1.8"/>
+            <circle cx="48" cy="47" r="2.8" fill="#eab308"/>
+          </svg>
+        `;
+      }
+
+      if (type === 'semitruck') {
+        // Highway Export Semi-Truck with Flatbed & Gold/Copper Ingots
+        return `
+          <svg width="${s}" height="${s}" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" class="shrink-0">
+            <rect x="6" y="37" width="34" height="5" rx="1.5" fill="#475569"/>
+            <rect x="9" y="29" width="11" height="8" rx="1.5" fill="#facc15"/>
+            <rect x="22" y="29" width="11" height="8" rx="1.5" fill="#fb923c"/>
+            <path d="M41 21H53L57 31V41H41V21Z" fill="#0284c7" stroke="#38bdf8" stroke-width="1.4"/>
+            <rect x="45" y="24" width="8" height="6" rx="1" fill="#e0f2fe"/>
+            <circle cx="13" cy="46" r="5.5" fill="#0f172a" stroke="#94a3b8" stroke-width="1.6"/>
+            <circle cx="28" cy="46" r="5.5" fill="#0f172a" stroke="#94a3b8" stroke-width="1.6"/>
+            <circle cx="49" cy="46" r="5.5" fill="#0f172a" stroke="#94a3b8" stroke-width="1.6"/>
+          </svg>
+        `;
+      }
+
+      if (type === 'crusher') {
+        // Industrial Jaw Crusher & Refining Hopper
+        return `
+          <svg width="${s}" height="${s}" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" class="shrink-0">
+            <polygon points="10,12 54,12 46,28 18,28" fill="#475569" stroke="#f59e0b" stroke-width="2"/>
+            <rect x="14" y="28" width="36" height="24" rx="4" fill="#1e293b" stroke="#f59e0b" stroke-width="2"/>
+            <circle cx="26" cy="40" r="5" fill="#94a3b8"/>
+            <circle cx="38" cy="40" r="5" fill="#cbd5e1"/>
+            <rect x="20" y="52" width="24" height="5" rx="2" fill="#f59e0b"/>
+          </svg>
+        `;
+      }
+
+      // Default Mining Pickaxe / Emblem
+      return `
+        <svg width="${s}" height="${s}" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" class="shrink-0">
+          <path d="M14 22C24 12 40 12 50 22" stroke="#0f172a" stroke-width="6" stroke-linecap="round"/>
+          <line x1="32" y1="16" x2="32" y2="52" stroke="#0f172a" stroke-width="6" stroke-linecap="round"/>
+          <polygon points="32,27 38,33 32,39 26,33" fill="#ffffff"/>
+        </svg>
+      `;
+    }
 
     // =========================================================================
     // 1. HOME SCREEN ICON & WEB APP MANIFEST GENERATOR
@@ -536,7 +693,6 @@
           c.height = 512;
           const ctx = c.getContext('2d');
 
-          // Dark slate background with rounded corners
           const grad = ctx.createLinearGradient(0, 0, 512, 512);
           grad.addColorStop(0, '#1e293b');
           grad.addColorStop(1, '#090d16');
@@ -545,14 +701,12 @@
           ctx.roundRect(0, 0, 512, 512, 110);
           ctx.fill();
 
-          // Industrial Amber Border
           ctx.strokeStyle = '#f59e0b';
           ctx.lineWidth = 22;
           ctx.beginPath();
           ctx.roundRect(22, 22, 468, 468, 92);
           ctx.stroke();
 
-          // Mountain Silhouette
           ctx.fillStyle = '#334155';
           ctx.beginPath();
           ctx.moveTo(75, 365);
@@ -563,7 +717,6 @@
           ctx.closePath();
           ctx.fill();
 
-          // Gold Nugget / Crystal Accent
           ctx.fillStyle = '#fbbf24';
           ctx.beginPath();
           ctx.moveTo(256, 125);
@@ -573,7 +726,6 @@
           ctx.closePath();
           ctx.fill();
 
-          // Title Banner
           ctx.fillStyle = '#f59e0b';
           ctx.beginPath();
           ctx.roundRect(66, 345, 380, 82, 24);
@@ -615,7 +767,7 @@
         localStorage.setItem(STORAGE_KEYS.VERSION, APP_VERSION);
         if (prev && prev !== APP_VERSION) {
           setTimeout(() => {
-            ui.toast(`Updated to Mine Master v${APP_VERSION}! Your saves are intact.`, 'success');
+            ui.toast(`Updated to Mine Master v${APP_VERSION}! All saved progress preserved.`, 'success');
           }, 900);
         }
       },
@@ -631,12 +783,12 @@
             const regs = await navigator.serviceWorker.getRegistrations();
             for (const reg of regs) await reg.update();
           }
-          await new Promise(r => setTimeout(r, 550));
+          await new Promise(r => setTimeout(r, 500));
           if (manual) {
-            ui.toast(`Mine Master v${APP_VERSION} is up to date! Progress safely backed up.`, 'info');
+            ui.toast(`Mine Master v${APP_VERSION} is up to date! Local saves safely backed up.`, 'info');
           }
         } catch (e) {
-          if (manual) ui.toast(`Running latest offline build v${APP_VERSION}.`, 'info');
+          if (manual) ui.toast(`Running latest build v${APP_VERSION}.`, 'info');
         } finally {
           if (icon) icon.classList.remove('animate-spin');
           if (label) label.textContent = 'Update';
@@ -661,7 +813,8 @@
       },
       toggle() {
         this.muted = !this.muted;
-        document.getElementById('btn-sound').textContent = this.muted ? '🔇' : '🔊';
+        document.getElementById('sound-icon-on').classList.toggle('hidden', this.muted);
+        document.getElementById('sound-icon-off').classList.toggle('hidden', !this.muted);
         if (!this.muted) this.playTone(520, 0.08, 'sine', 0.1);
       },
       playTone(freq, dur = 0.1, type = 'triangle', vol = 0.1) {
@@ -722,7 +875,6 @@
       excavator: {
         type: 'excavator',
         label: 'Excavator',
-        icon: '🚜',
         color: '#f59e0b',
         baseCost: 8500,
         baseSpeed: 105,
@@ -732,7 +884,6 @@
       loader: {
         type: 'loader',
         label: 'Wheel Loader',
-        icon: '🏗️',
         color: '#fb923c',
         baseCost: 7500,
         baseSpeed: 145,
@@ -742,7 +893,6 @@
       dumper: {
         type: 'dumper',
         label: 'Articulated Dumper',
-        icon: '🚛',
         color: '#eab308',
         baseCost: 9500,
         baseSpeed: 165,
@@ -756,12 +906,13 @@
     // =========================================================================
     const game = {
       initialized: false,
+      paused: false,
       canvas: null,
       ctx: null,
       width: 0,
       height: 0,
 
-      cam: { x: 120, y: 180, zoom: 0.92, dragging: false, lastX: 0, lastY: 0, followSelected: false },
+      cam: { x: 120, y: 180, zoom: 0.92, dragging: false, lastX: 0, lastY: 0 },
 
       seed: 1,
       siteName: 'Ironridge Quarry',
@@ -810,9 +961,6 @@
       },
 
       contract: null,
-      activeEvent: null,
-      eventCooldown: 35,
-
       keys: {},
       joystick: { active: false, dx: 0, dy: 0 },
       autoSaveTimer: 0,
@@ -824,6 +972,14 @@
         this.resize();
         window.addEventListener('resize', () => this.resize());
 
+        // Populate static UI SVG icons
+        document.getElementById('brand-logo-slot').innerHTML = getMachineSVG('pickaxe', 24);
+        document.getElementById('hud-crusher-icon').innerHTML = getMachineSVG('crusher', 22);
+        document.getElementById('dock-fleet-icon').innerHTML = getMachineSVG('excavator', 18);
+        document.getElementById('dock-market-icon').innerHTML = getMachineSVG('semitruck', 18);
+        document.getElementById('help-header-icon').innerHTML = getMachineSVG('excavator', 34);
+        document.getElementById('modal-market-header-icon').innerHTML = getMachineSVG('semitruck', 26);
+
         this.bindInputs();
 
         const loaded = saveSystem.loadAutoSave();
@@ -832,6 +988,7 @@
         }
 
         this.initialized = true;
+        ui.renderHelpModalBody();
         ui.updateAllHUD();
 
         const tutDone = localStorage.getItem(STORAGE_KEYS.TUTORIAL_DONE) === 'true';
@@ -841,7 +998,7 @@
         if (chk) chk.checked = shouldShowGuide;
 
         if (!tutDone) {
-          tutorial.start(false);
+          tutorial.start(true);
         } else if (shouldShowGuide) {
           ui.openModal('modal-help');
         }
@@ -864,6 +1021,15 @@
         this.canvas.width = this.width * dpr;
         this.canvas.height = this.height * dpr;
         this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      },
+
+      setPaused(flag) {
+        this.paused = !!flag;
+        const pill = document.getElementById('paused-pill');
+        if (pill) {
+          if (this.paused) pill.classList.remove('hidden');
+          else pill.classList.add('hidden');
+        }
       },
 
       // Procedural Quarry Generator
@@ -927,6 +1093,7 @@
               let special = null;
               if (specialRoll < 0.025) special = 'geode';
               else if (specialRoll < 0.04) special = 'fossil';
+              else if (specialRoll < 0.05) special = 'meteorite';
 
               row.push({
                 terrain,
@@ -972,7 +1139,7 @@
           wheelPhase: 0,
           animTimer: 0,
           animType: 'idle',
-          aiStatusText: '🤖 Ready',
+          aiStatusText: 'Ready',
           waypoint: null,
           path: [],
           pathGoalKey: '',
@@ -981,6 +1148,7 @@
           lastCheckX: x,
           lastCheckY: y,
           reverseTimer: 0,
+          waitLoadTimer: 0,
           speedLvl: 1,
           capLvl: 1,
           powerLvl: 1,
@@ -997,15 +1165,9 @@
       selectVehicle(v) {
         if (!v) return;
         this.selectedVehicleId = v.id;
+        tutorial.notifyEvent('select_vehicle', v.type);
         ui.updateSelectedVehicleHUD();
-      },
-
-      cycleVehicle() {
-        if (this.vehicles.length === 0) return;
-        const idx = this.vehicles.findIndex(v => v.id === this.selectedVehicleId);
-        const next = this.vehicles[(idx + 1) % this.vehicles.length];
-        this.selectVehicle(next);
-        this.centerCameraOnSelected();
+        if (ui.fleetDrawerOpen) ui.renderFleetDrawer();
       },
 
       centerCameraOnSelected() {
@@ -1021,8 +1183,9 @@
         v.aiEnabled = !v.aiEnabled;
         v.waypoint = null;
         v.path = [];
-        v.aiStatusText = v.aiEnabled ? '🤖 Auto-Shuttle Active' : '🕹️ Manual Control';
+        v.aiStatusText = v.aiEnabled ? 'Auto-Shuttle Active' : 'Manual Control';
         ui.updateSelectedVehicleHUD();
+        if (ui.fleetDrawerOpen) ui.renderFleetDrawer();
       },
 
       getVehicleSpeed(v) {
@@ -1045,6 +1208,7 @@
       // =====================================================================
       bindInputs() {
         window.addEventListener('keydown', (e) => {
+          if (this.paused) return;
           this.keys[e.code] = true;
           if (e.code === 'Space') {
             e.preventDefault();
@@ -1061,6 +1225,7 @@
 
         this.canvas.addEventListener('pointerdown', (e) => {
           soundFX.ensure();
+          if (ui.fleetDrawerOpen) ui.toggleFleetDrawer(false);
           pointerDownPos = { x: e.clientX, y: e.clientY };
           this.cam.dragging = true;
           this.cam.lastX = e.clientX;
@@ -1124,7 +1289,7 @@
           const cy = rect.top + rect.height / 2;
           let dx = clientX - cx;
           let dy = clientY - cy;
-          const maxR = 34;
+          const maxR = 28;
           const dist = Math.hypot(dx, dy);
           if (dist > maxR) {
             dx = (dx / dist) * maxR;
@@ -1159,12 +1324,13 @@
       },
 
       handleMapTap(screenX, screenY) {
+        if (this.paused) return;
         const wx = screenX / this.cam.zoom + this.cam.x;
         const wy = screenY / this.cam.zoom + this.cam.y;
 
         // Check if player tapped a machine
         for (const v of this.vehicles) {
-          if (Math.hypot(v.x - wx, v.y - wy) < 34) {
+          if (Math.hypot(v.x - wx, v.y - wy) < 38) {
             this.selectVehicle(v);
             soundFX.playTone(440, 0.06, 'sine', 0.08);
             return;
@@ -1176,8 +1342,9 @@
         if (sel) {
           sel.waypoint = { x: wx, y: wy };
           sel.path = [];
-          sel.aiStatusText = '📍 Moving to Waypoint';
+          sel.aiStatusText = 'Moving to Waypoint';
           this.spawnParticle(wx, wy, '#38bdf8', 0.5);
+          tutorial.notifyEvent('route_vehicle', sel.type);
           ui.updateSelectedVehicleHUD();
         }
       },
@@ -1193,9 +1360,11 @@
       },
 
       // =====================================================================
-      // MAIN SIMULATION UPDATE LOOP
+      // MAIN SIMULATION UPDATE LOOP (PAUSES AUTOMATICALLY WHEN MODALS ARE OPEN)
       // =====================================================================
       update(dt) {
+        if (this.paused) return;
+
         // Day/Night & Weather Cycle
         this.timeOfDay = (this.timeOfDay + dt * 0.008) % 1;
         if (this.timeOfDay < dt * 0.008) this.day++;
@@ -1271,7 +1440,8 @@
             v.waypoint = null;
             v.path = [];
             v.stuckTimer = 0;
-            v.aiStatusText = '🕹️ Manual Driving';
+            v.aiStatusText = 'Manual Driving';
+            tutorial.notifyEvent('route_vehicle', v.type);
             this.updateManualVehicle(v, dt);
           } else if (v.waypoint) {
             this.updateWaypointVehicle(v, dt);
@@ -1279,7 +1449,7 @@
             activeAICount++;
             this.updateAIVehicle(v, dt);
           } else if (v.aiEnabled) {
-            v.aiStatusText = '⏸️ Needs Operator (Crew)';
+            v.aiStatusText = 'Needs Operator (Crew)';
           }
         });
 
@@ -1298,9 +1468,6 @@
           ft.life -= dt;
           if (ft.life <= 0) this.floatingTexts.splice(i, 1);
         }
-
-        // Update Interactive Onboarding Tutorial
-        tutorial.update();
 
         // Periodic HUD & Autosave
         this.autoSaveTimer += dt;
@@ -1425,10 +1592,10 @@
         const wy = r * TILE_SIZE + TILE_SIZE / 2;
         const { crusher, exportBay, garage } = this.facilities;
         const inRect = (rect, pad) =>
-          wx > rect.x + pad && wx < rect.x + rect.w - pad &&
-          wy > rect.y + pad && wy < rect.y + rect.h - pad;
+          wx > rect.x - pad && wx < rect.x + rect.w + pad &&
+          wy > rect.y - pad && wy < rect.y + rect.h + pad;
 
-        if (inRect(crusher, 14) || inRect(exportBay, 14) || inRect(garage, 14)) {
+        if (inRect(crusher, 8) || inRect(exportBay, 8) || inRect(garage, 8)) {
           return false;
         }
         return true;
@@ -1551,7 +1718,7 @@
         this.steerTowards(v, nextNode.x, nextNode.y, dt);
 
         v.stuckTimer += dt;
-        if (v.stuckTimer >= 1.2) {
+        if (v.stuckTimer >= 1.0) {
           const movedDist = Math.hypot(v.x - v.lastCheckX, v.y - v.lastCheckY);
           v.lastCheckX = v.x;
           v.lastCheckY = v.y;
@@ -1593,7 +1760,6 @@
         let moveX = dx;
         let moveY = dy;
 
-        // Soft vehicle-to-vehicle separation steering so dumpers & loaders pass cleanly
         for (const other of this.vehicles) {
           if (other.id === v.id) continue;
           const sepX = v.x - other.x;
@@ -1657,17 +1823,17 @@
           }
           if (target) {
             if (minD > 62) {
-              v.aiStatusText = '🚜 Moving to Pit Face';
+              v.aiStatusText = 'Moving to Pit Face';
               this.navigateTo(v, target.x, target.y, dt);
             } else {
-              v.aiStatusText = '⛏️ Excavating Ore';
+              v.aiStatusText = 'Excavating Ore';
               v.path = [];
               v.stuckTimer = 0;
               v.angle = Math.atan2(target.y - v.y, target.x - v.x);
               this.triggerVehicleAction(v);
             }
           } else {
-            v.aiStatusText = '⚠️ Upgrade Hydraulics!';
+            v.aiStatusText = 'Upgrade Hydraulics!';
           }
         } else if (v.type === 'loader') {
           const cap = this.getVehicleCapacity(v);
@@ -1687,10 +1853,10 @@
             }
             const d = Math.hypot(targetX - v.x, targetY - v.y);
             if (d > (loadingDumper ? 68 : 54)) {
-              v.aiStatusText = loadingDumper ? '🏗️ Driving to Dumper' : '🏗️ Hauling to Crusher';
+              v.aiStatusText = loadingDumper ? 'Driving to Dumper' : 'Hauling to Crusher';
               this.navigateTo(v, targetX, targetY, dt);
             } else {
-              v.aiStatusText = loadingDumper ? '📦 Loading Dumper' : '⚙️ Dumping into Crusher';
+              v.aiStatusText = loadingDumper ? 'Loading Dumper' : 'Dumping into Crusher';
               v.path = [];
               v.stuckTimer = 0;
               v.angle = Math.atan2(targetY - v.y, targetX - v.x);
@@ -1707,31 +1873,35 @@
               }
             }
             if (minD > 52) {
-              v.aiStatusText = '🏗️ Moving to Ore Pile';
+              v.aiStatusText = 'Moving to Ore Pile';
               this.navigateTo(v, nearest.x, nearest.y, dt);
             } else {
-              v.aiStatusText = '🪨 Scooping Ore';
+              v.aiStatusText = 'Scooping Ore';
               v.path = [];
               v.stuckTimer = 0;
               v.angle = Math.atan2(nearest.y - v.y, nearest.x - v.x);
               this.triggerVehicleAction(v);
             }
           } else {
-            v.aiStatusText = '⏳ Waiting for Ore Piles';
+            v.aiStatusText = 'Waiting for Ore Piles';
           }
         } else if (v.type === 'dumper') {
           const cap = this.getVehicleCapacity(v);
           const load = this.getVehicleTotalCargo(v);
+          if (load > 0 && load < cap * 0.6) v.waitLoadTimer += dt;
+          else v.waitLoadTimer = 0;
 
-          if (load >= cap * 0.6 || (load > 0 && this.orePiles.length === 0 && load >= 6)) {
+          const readyToHaul = load >= cap * 0.6 || (load >= 6 && (this.orePiles.length === 0 || v.waitLoadTimer > 7));
+
+          if (readyToHaul) {
             const dockX = this.facilities.crusher.x + this.facilities.crusher.w + 36;
             const dockY = this.facilities.crusher.y + 58;
             const d = Math.hypot(dockX - v.x, dockY - v.y);
             if (d > 48) {
-              v.aiStatusText = '🚛 Hauling to Crusher';
+              v.aiStatusText = 'Hauling to Crusher';
               this.navigateTo(v, dockX, dockY, dt);
             } else {
-              v.aiStatusText = '⬇️ Dumping at Crusher';
+              v.aiStatusText = 'Dumping at Crusher';
               v.path = [];
               v.stuckTimer = 0;
               v.angle = Math.atan2(v.y - dockY, v.x - (dockX - 40));
@@ -1740,10 +1910,10 @@
           } else {
             const d = Math.hypot(this.pitLoadZone.x - v.x, this.pitLoadZone.y - v.y);
             if (d > 48) {
-              v.aiStatusText = '🚛 Driving to Pit Load Zone';
+              v.aiStatusText = 'Driving to Pit Load Zone';
               this.navigateTo(v, this.pitLoadZone.x, this.pitLoadZone.y, dt);
             } else {
-              v.aiStatusText = '⏳ Waiting for Loader';
+              v.aiStatusText = 'Waiting for Loader';
               v.path = [];
               v.stuckTimer = 0;
             }
@@ -1769,6 +1939,7 @@
       },
 
       triggerManualAction() {
+        if (this.paused) return;
         const v = this.getSelectedVehicle();
         if (v) this.triggerVehicleAction(v, true);
       },
@@ -1823,12 +1994,17 @@
                 this.money += 3500;
                 this.totalEarned += 3500;
                 soundFX.playJackpot();
-                this.addFloatingText(targetTile.tx, targetTile.ty - 18, '💎 Crystal Geode +$3,500!', '#38bdf8');
+                this.addFloatingText(targetTile.tx, targetTile.ty - 18, 'Crystal Geode +$3,500!', '#38bdf8');
               } else if (targetTile.t.special === 'fossil') {
                 this.money += 2500;
                 this.totalEarned += 2500;
                 soundFX.playJackpot();
-                this.addFloatingText(targetTile.tx, targetTile.ty - 18, '🦕 Ancient Fossil +$2,500!', '#fbbf24');
+                this.addFloatingText(targetTile.tx, targetTile.ty - 18, 'Ancient Fossil +$2,500!', '#fbbf24');
+              } else if (targetTile.t.special === 'meteorite') {
+                this.money += 5000;
+                this.totalEarned += 5000;
+                soundFX.playJackpot();
+                this.addFloatingText(targetTile.tx, targetTile.ty - 18, 'Rare Meteorite +$5,000!', '#f472b6');
               }
 
               targetTile.t.terrain = TERRAIN.PIT_FLOOR;
@@ -1847,7 +2023,6 @@
           const cap = this.getVehicleCapacity(v);
           const load = this.getVehicleTotalCargo(v);
 
-          // Check unload into Dumper or Crusher first
           if (load > 0) {
             for (const other of this.vehicles) {
               if (other.type === 'dumper' && Math.hypot(other.x - v.x, other.y - v.y) < 82) {
@@ -1878,7 +2053,6 @@
             }
           }
 
-          // Scoop nearby ore pile
           if (load < cap) {
             for (let i = this.orePiles.length - 1; i >= 0; i--) {
               const p = this.orePiles[i];
@@ -1919,7 +2093,7 @@
 
         if (dumped > 0) {
           soundFX.playTone(180, 0.16, 'sawtooth', 0.08);
-          this.addFloatingText(crusher.x + 80, crusher.y, `⚙️ +${dumped}t to Crusher`, '#fbbf24');
+          this.addFloatingText(crusher.x + 80, crusher.y, `+${dumped}t to Crusher`, '#fbbf24');
         }
       },
 
@@ -2041,7 +2215,7 @@
 
         ctx.restore();
 
-        // Subtle Night / Rain Atmosphere Overlay
+        // Subtle Night Atmosphere Overlay
         const darkness = Math.max(0, Math.sin(this.timeOfDay * Math.PI * 2 - Math.PI * 0.5) * 0.34);
         if (darkness > 0.02) {
           ctx.fillStyle = `rgba(9, 14, 28, ${darkness.toFixed(2)})`;
@@ -2067,14 +2241,12 @@
               ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
               ctx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
             } else {
-              // Solid Rock Seam
               ctx.fillStyle =
                 t.terrain === TERRAIN.BEDROCK ? '#3b2d63' :
                 t.terrain === TERRAIN.GRANITE ? '#475569' :
                 t.terrain === TERRAIN.LIMESTONE ? '#64748b' : '#785a3c';
               ctx.fillRect(x + 1, y + 1, TILE_SIZE - 2, TILE_SIZE - 2);
 
-              // Mineral Fleck Dots
               if (t.ore) {
                 ctx.fillStyle = ORES[t.ore].color;
                 ctx.beginPath();
@@ -2084,15 +2256,13 @@
                 ctx.fill();
               }
 
-              // Special Geode / Fossil Sparkle
               if (t.special) {
-                ctx.fillStyle = t.special === 'geode' ? '#38bdf8' : '#fde047';
+                ctx.fillStyle = t.special === 'geode' ? '#38bdf8' : t.special === 'meteorite' ? '#f472b6' : '#fde047';
                 ctx.beginPath();
                 ctx.arc(x + 24, y + 24, 5, 0, Math.PI * 2);
                 ctx.fill();
               }
 
-              // Damage Bar if partially mined
               if (t.hp < t.maxHp) {
                 ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
                 ctx.fillRect(x + 6, y + TILE_SIZE - 9, TILE_SIZE - 12, 4);
@@ -2127,7 +2297,7 @@
         ctx.arc(this.pitLoadZone.x, this.pitLoadZone.y, 42, 0, Math.PI * 2);
         ctx.stroke();
         ctx.setLineDash([]);
-        ctx.fillStyle = 'rgba(251, 191, 36, 0.65)';
+        ctx.fillStyle = 'rgba(251, 191, 36, 0.7)';
         ctx.font = 'bold 10px Inter, sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText('PIT LOAD ZONE', this.pitLoadZone.x, this.pitLoadZone.y + 54);
@@ -2143,7 +2313,6 @@
         ctx.lineWidth = 2;
         ctx.strokeRect(crusher.x + 70, crusher.y + crusher.h, 20, exportBay.y - (crusher.y + crusher.h));
 
-        // Moving Ingots on Conveyor
         const beltTop = crusher.y + crusher.h;
         const beltLen = exportBay.y - beltTop;
         this.conveyorItems.forEach(item => {
@@ -2160,7 +2329,6 @@
         ctx.fill();
         ctx.stroke();
 
-        // Spinning Crusher Jaws
         const jawOffset = Math.sin(crusher.animPhase) * 4;
         ctx.fillStyle = '#64748b';
         ctx.fillRect(crusher.x + 24 + jawOffset, crusher.y + 30, 18, 55);
@@ -2170,7 +2338,7 @@
         ctx.fillStyle = '#fbbf24';
         ctx.font = '800 11px Inter, sans-serif';
         ctx.textAlign = 'left';
-        ctx.fillText('⚙️ CRUSHER PLANT', crusher.x, crusher.y - 8);
+        ctx.fillText('CRUSHER PLANT', crusher.x, crusher.y - 8);
         ctx.fillStyle = '#e2e8f0';
         ctx.font = 'bold 12px JetBrains Mono, monospace';
         ctx.fillText(`${rawTotal}/${crusher.maxBuffer}t`, crusher.x + 86, crusher.y + 62);
@@ -2186,9 +2354,8 @@
 
         ctx.fillStyle = '#34d399';
         ctx.font = '800 11px Inter, sans-serif';
-        ctx.fillText('🚛 EXPORT BAY', exportBay.x, exportBay.y - 8);
+        ctx.fillText('EXPORT BAY', exportBay.x, exportBay.y - 8);
 
-        // Silo Indicator Circles
         const siloKeys = ['iron', 'copper', 'gold', 'lithium'];
         siloKeys.forEach((k, idx) => {
           ctx.fillStyle = ORES[k].color;
@@ -2197,7 +2364,6 @@
           ctx.fill();
         });
 
-        // Overhead Gantry Crane Beam when loading
         if (this.exportTruck.state === 'loading') {
           ctx.strokeStyle = '#fbbf24';
           ctx.lineWidth = 4;
@@ -2217,7 +2383,7 @@
         ctx.stroke();
         ctx.fillStyle = '#7dd3fc';
         ctx.font = '800 11px Inter, sans-serif';
-        ctx.fillText('🔧 WORKSHOP', garage.x, garage.y - 8);
+        ctx.fillText('WORKSHOP', garage.x, garage.y - 8);
       },
 
       renderExportTruck(ctx) {
@@ -2225,7 +2391,6 @@
         ctx.save();
         ctx.translate(t.x, t.y);
 
-        // Trailer
         ctx.fillStyle = '#334155';
         ctx.strokeStyle = '#94a3b8';
         ctx.lineWidth = 2;
@@ -2234,13 +2399,11 @@
         ctx.fill();
         ctx.stroke();
 
-        // Loaded Ingots on Flatbed
         for (let i = 0; i < t.loadedBars; i++) {
           ctx.fillStyle = i % 2 === 0 ? '#facc15' : '#fb923c';
           ctx.fillRect(-14 + (i % 2) * 16, -38 + Math.floor(i / 2) * 13, 12, 9);
         }
 
-        // Cab
         ctx.fillStyle = '#0284c7';
         ctx.beginPath();
         ctx.roundRect(-20, 20, 40, 26, 6);
@@ -2272,7 +2435,6 @@
         const cap = this.getVehicleCapacity(v);
         const load = this.getVehicleTotalCargo(v);
 
-        // Selection Ring
         if (isSelected) {
           ctx.strokeStyle = '#fbbf24';
           ctx.lineWidth = 3;
@@ -2286,12 +2448,10 @@
         ctx.rotate(v.angle);
 
         if (v.type === 'excavator') {
-          // Caterpillar Tracks
           ctx.fillStyle = '#1e293b';
           ctx.fillRect(-20, -18, 40, 7);
           ctx.fillRect(-20, 11, 40, 7);
 
-          // Swinging House
           const swing = v.animType === 'dig' ? Math.sin(v.animTimer * 18) * 0.35 : 0;
           ctx.rotate(swing);
           ctx.fillStyle = '#f59e0b';
@@ -2299,27 +2459,23 @@
           ctx.roundRect(-16, -13, 30, 26, 5);
           ctx.fill();
 
-          // Hydraulic Boom & Bucket
           const ext = v.animType === 'dig' ? Math.sin(v.animTimer * 14) * 10 : 0;
           ctx.fillStyle = '#d97706';
           ctx.fillRect(10, -4, 24 + ext, 8);
           ctx.fillStyle = '#334155';
           ctx.fillRect(32 + ext, -7, 10, 14);
         } else if (v.type === 'loader') {
-          // Tires
           ctx.fillStyle = '#0f172a';
           ctx.fillRect(-16, -18, 12, 5);
           ctx.fillRect(6, -18, 12, 5);
           ctx.fillRect(-16, 13, 12, 5);
           ctx.fillRect(6, 13, 12, 5);
 
-          // Chassis
           ctx.fillStyle = '#fb923c';
           ctx.beginPath();
           ctx.roundRect(-18, -13, 34, 26, 6);
           ctx.fill();
 
-          // Front Scoop Bucket
           const lift = v.animType === 'scoop' || v.animType === 'dump' ? 6 : 0;
           ctx.fillStyle = '#475569';
           ctx.fillRect(16 + lift, -15, 11, 30);
@@ -2328,14 +2484,12 @@
             ctx.fillRect(17 + lift, -11, 7, 22);
           }
         } else if (v.type === 'dumper') {
-          // 6 Heavy Wheels
           ctx.fillStyle = '#0f172a';
           [-18, -2, 12].forEach(wx => {
             ctx.fillRect(wx, -18, 10, 4);
             ctx.fillRect(wx, 14, 10, 4);
           });
 
-          // Dump Bed (Tilts back when dumping)
           const tiltShift = v.animType === 'dump' ? -6 : 0;
           ctx.fillStyle = '#eab308';
           ctx.beginPath();
@@ -2349,7 +2503,6 @@
             ctx.fill();
           }
 
-          // Front Cab
           ctx.fillStyle = '#fef08a';
           ctx.beginPath();
           ctx.roundRect(10, -12, 14, 24, 4);
@@ -2358,23 +2511,22 @@
 
         ctx.restore();
 
-        // Status Badge Above Machine
         if (v.aiEnabled || load > 0) {
-          ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+          ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
           ctx.beginPath();
           ctx.roundRect(v.x - 26, v.y - 36, 52, 15, 6);
           ctx.fill();
           ctx.fillStyle = v.aiEnabled ? '#38bdf8' : '#fbbf24';
           ctx.font = 'bold 9px JetBrains Mono, monospace';
           ctx.textAlign = 'center';
-          ctx.fillText(`${v.aiEnabled ? '🤖' : ''}${load}/${cap}t`, v.x, v.y - 25);
+          ctx.fillText(`${v.aiEnabled ? 'AI ' : ''}${load}/${cap}t`, v.x, v.y - 25);
         }
 
-        // Interactive Tutorial World Highlight Ring
+        // Interactive Tutorial Pulsing Target Ring on Map Machines
         if (tutorial.active && tutorial.shouldHighlightVehicle(v)) {
-          const pulse = 44 + Math.sin(performance.now() * 0.008) * 6;
-          ctx.strokeStyle = '#38bdf8';
-          ctx.lineWidth = 3.5;
+          const pulse = 44 + Math.sin(performance.now() * 0.008) * 7;
+          ctx.strokeStyle = '#fbbf24';
+          ctx.lineWidth = 4;
           ctx.beginPath();
           ctx.arc(v.x, v.y, pulse, 0, Math.PI * 2);
           ctx.stroke();
@@ -2447,7 +2599,8 @@
           stuckTimer: 0,
           lastCheckX: v.x,
           lastCheckY: v.y,
-          reverseTimer: 0
+          reverseTimer: 0,
+          waitLoadTimer: 0
         }));
         game.selectedVehicleId = game.vehicles[0]?.id || null;
         game.staff = data.staff || { operators: 3, geologist: 0, mechanic: 0, metallurgist: 0 };
@@ -2518,9 +2671,11 @@
     };
 
     // =========================================================================
-    // 7. UI & MODAL RENDERING CONTROLLER
+    // 7. UI, FLEET DRAWER & MODAL RENDERING CONTROLLER
     // =========================================================================
     const ui = {
+      fleetDrawerOpen: false,
+
       toast(msg, type = 'info') {
         const container = document.getElementById('toast-container');
         if (!container) return;
@@ -2542,17 +2697,67 @@
         localStorage.setItem(STORAGE_KEYS.SHOW_STARTUP, checked ? 'true' : 'false');
       },
 
+      toggleFleetDrawer(forceState) {
+        const drawer = document.getElementById('fleet-drawer');
+        if (!drawer) return;
+        this.fleetDrawerOpen = typeof forceState === 'boolean' ? forceState : !this.fleetDrawerOpen;
+        if (this.fleetDrawerOpen) {
+          this.renderFleetDrawer();
+          drawer.classList.remove('hidden');
+        } else {
+          drawer.classList.add('hidden');
+        }
+      },
+
+      renderFleetDrawer() {
+        const list = document.getElementById('fleet-drawer-list');
+        const countBadge = document.getElementById('fleet-drawer-count');
+        if (!list) return;
+        if (countBadge) countBadge.textContent = `${game.vehicles.length} Units`;
+
+        list.innerHTML = game.vehicles.map(v => {
+          const isSel = v.id === game.selectedVehicleId;
+          const cap = game.getVehicleCapacity(v);
+          const load = game.getVehicleTotalCargo(v);
+          const pct = Math.min(100, Math.round((load / cap) * 100));
+          return `
+            <button onclick="game.selectVehicle(game.vehicles.find(x => x.id === '${v.id}')); game.centerCameraOnSelected(); ui.toggleFleetDrawer(false);"
+              class="w-full text-left flex items-center justify-between gap-2.5 p-2 rounded-2xl border transition ${isSel ? 'bg-amber-500/15 border-amber-400' : 'bg-slate-800/80 hover:bg-slate-800 border-slate-700'}">
+              <div class="flex items-center gap-2.5 min-w-0">
+                ${getMachineSVG(v.type, 34)}
+                <div class="min-w-0">
+                  <div class="font-extrabold text-xs text-white truncate">${v.name}</div>
+                  <div class="text-[11px] text-cyan-300 truncate">${v.aiStatusText || 'Ready'}</div>
+                </div>
+              </div>
+              <div class="text-right shrink-0 font-mono-num">
+                <div class="text-[11px] font-bold text-amber-300">${load}/${cap}t (${pct}%)</div>
+                <div class="text-[10px] ${v.aiEnabled ? 'text-emerald-400' : 'text-slate-400'}">${v.aiEnabled ? 'AUTO ON' : 'MANUAL'}</div>
+              </div>
+            </button>
+          `;
+        }).join('');
+      },
+
       updateAllHUD() {
-        document.getElementById('hud-money').textContent = `$${Math.floor(game.money).toLocaleString()}`;
+        const formattedMoney = `$${Math.floor(game.money).toLocaleString()}`;
+        document.getElementById('hud-money').textContent = formattedMoney;
+        const gBal = document.getElementById('modal-garage-balance');
+        const sBal = document.getElementById('modal-staff-balance');
+        const mBal = document.getElementById('modal-market-balance');
+        if (gBal) gBal.textContent = formattedMoney;
+        if (sBal) sBal.textContent = formattedMoney;
+        if (mBal) mBal.textContent = formattedMoney;
+
         document.getElementById('hud-day').textContent = `Day ${game.day}`;
         const isNight = game.timeOfDay > 0.62 || game.timeOfDay < 0.14;
         document.getElementById('hud-weather').textContent =
-          game.weather === 'rain' ? '🌧️ Rain' : isNight ? '🌙 Night' : '☀️ Clear';
+          game.weather === 'rain' ? 'Rain' : isNight ? 'Night' : 'Clear';
 
         const cr = game.facilities.crusher;
         const rawSum = Math.round(cr.rawBuffer.iron + cr.rawBuffer.copper + cr.rawBuffer.gold + cr.rawBuffer.lithium);
         document.getElementById('hud-crusher').textContent = `${rawSum}/${cr.maxBuffer}t`;
-        document.getElementById('hud-crusher-mobile').textContent = `⚙️ ${rawSum}/${cr.maxBuffer}t`;
+        document.getElementById('hud-crusher-mobile').textContent = `Crusher ${rawSum}/${cr.maxBuffer}t`;
 
         document.getElementById('hud-silo-iron').textContent = `${game.silos.iron.toFixed(1)}t`;
         document.getElementById('hud-silo-copper').textContent = `${game.silos.copper.toFixed(1)}t`;
@@ -2574,21 +2779,24 @@
       updateSelectedVehicleHUD() {
         const v = game.getSelectedVehicle();
         if (!v) return;
-        const spec = VEHICLE_SPECS[v.type];
         const cap = game.getVehicleCapacity(v);
         const load = game.getVehicleTotalCargo(v);
 
-        document.getElementById('sel-v-icon').textContent = spec.icon;
+        const iconSlot = document.getElementById('sel-v-icon');
+        if (iconSlot.dataset.type !== v.type) {
+          iconSlot.innerHTML = getMachineSVG(v.type, 34);
+          iconSlot.dataset.type = v.type;
+        }
         document.getElementById('sel-v-name').textContent = v.name;
-        document.getElementById('sel-v-state').textContent = v.aiStatusText || (v.aiEnabled ? '🤖 Auto-Shuttle Active' : '🕹️ Manual Control');
+        document.getElementById('sel-v-state').textContent = v.aiStatusText || (v.aiEnabled ? 'Auto-Shuttle Active' : 'Manual Control');
         document.getElementById('sel-v-cargo').textContent = `${load} / ${cap} t`;
         document.getElementById('sel-v-bar').style.width = `${Math.min(100, (load / cap) * 100)}%`;
 
         const aiBtn = document.getElementById('btn-toggle-ai');
         aiBtn.textContent = v.aiEnabled ? 'Auto: ON' : 'Auto: OFF';
         aiBtn.className = v.aiEnabled
-          ? 'btn-industrial shrink-0 px-2.5 py-1 rounded-xl text-[11px] font-extrabold bg-cyan-500 text-slate-950'
-          : 'btn-industrial shrink-0 px-2.5 py-1 rounded-xl text-[11px] font-extrabold bg-slate-700 text-slate-200';
+          ? 'btn-industrial shrink-0 px-2 sm:px-2.5 py-1 rounded-xl text-[10px] sm:text-[11px] font-extrabold bg-cyan-500 text-slate-950'
+          : 'btn-industrial shrink-0 px-2 sm:px-2.5 py-1 rounded-xl text-[10px] sm:text-[11px] font-extrabold bg-slate-700 text-slate-200';
       },
 
       openModal(id) {
@@ -2597,6 +2805,8 @@
         if (!el) return;
         el.classList.remove('hidden');
         el.classList.add('flex');
+        game.setPaused(true);
+        this.updateAllHUD();
 
         if (id === 'modal-garage') {
           this.renderGarageModal();
@@ -2611,10 +2821,14 @@
           tutorial.notifyEvent('open_market');
         }
         if (id === 'modal-contracts') this.renderContractsModal();
-        if (id === 'modal-saves') this.renderSavesModal();
+        if (id === 'modal-saves') {
+          this.renderSavesModal();
+          tutorial.notifyEvent('open_saves');
+        }
       },
 
       closeModals() {
+        this.toggleFleetDrawer(false);
         ['modal-garage', 'modal-staff', 'modal-market', 'modal-contracts', 'modal-saves', 'modal-help', 'modal-newgame'].forEach(id => {
           const el = document.getElementById(id);
           if (el) {
@@ -2622,6 +2836,63 @@
             el.classList.remove('flex');
           }
         });
+        game.setPaused(false);
+      },
+
+      renderHelpModalBody() {
+        const body = document.getElementById('help-modal-body');
+        if (!body) return;
+        body.innerHTML = `
+          <div class="bg-gradient-to-r from-amber-500/15 to-emerald-500/10 border border-amber-500/40 rounded-2xl p-3.5">
+            <h3 class="font-black text-amber-400 text-sm uppercase tracking-wide mb-1">Your Goal</h3>
+            <p>
+              Turn a rugged open-pit quarry into a high-output mining empire! Dig deep through Dirt, Limestone, Granite, and purple Basalt to uncover rich seams of <b>Iron, Copper, Gold, Lithium</b>, and rare <b>Meteorites & Crystal Geodes</b>. Fulfill industrial contracts, upgrade hydraulics, and maximize profits.
+            </p>
+          </div>
+
+          <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-3.5">
+            <h3 class="font-extrabold text-cyan-300 mb-2">How the Quarry Logistics Loop Works</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+              <div class="bg-slate-900/90 border border-slate-700/80 rounded-xl p-2.5 flex items-start gap-2.5">
+                ${getMachineSVG('excavator', 38)}
+                <div>
+                  <div class="font-bold text-amber-400">1. Excavator (Pit Face)</div>
+                  <p class="text-slate-400 mt-0.5">Breaks rock seams along the quarry wall and piles raw ore onto the pit floor. Upgrade Hydraulics to break purple Basalt!</p>
+                </div>
+              </div>
+              <div class="bg-slate-900/90 border border-slate-700/80 rounded-xl p-2.5 flex items-start gap-2.5">
+                ${getMachineSVG('loader', 38)}
+                <div>
+                  <div class="font-bold text-orange-400">2. Wheel Loader (Pit Load Zone)</div>
+                  <p class="text-slate-400 mt-0.5">Scoops loose ore piles and loads them into the Articulated Dumper (or directly into the Crusher).</p>
+                </div>
+              </div>
+              <div class="bg-slate-900/90 border border-slate-700/80 rounded-xl p-2.5 flex items-start gap-2.5">
+                ${getMachineSVG('dumper', 38)}
+                <div>
+                  <div class="font-bold text-yellow-300">3. Articulated Dumper (Smart Haul)</div>
+                  <p class="text-slate-400 mt-0.5">Uses A* pathfinding to shuttle heavy 26t+ loads back and forth from the Pit Load Zone to the <b>Crusher Plant</b>.</p>
+                </div>
+              </div>
+              <div class="bg-slate-900/90 border border-slate-700/80 rounded-xl p-2.5 flex items-start gap-2.5">
+                ${getMachineSVG('semitruck', 38)}
+                <div>
+                  <div class="font-bold text-emerald-400">4. Crusher & Export Semi-Truck</div>
+                  <p class="text-slate-400 mt-0.5">Refines raw rock into metal ingots, loads the Export Semi-Truck via crane, and sells for cash!</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-3.5">
+            <h3 class="font-extrabold text-emerald-400 mb-1">Intuitive Controls</h3>
+            <ul class="list-disc list-inside space-y-1 text-xs text-slate-300">
+              <li><b>Smart Auto-Shuttle:</b> Your starter crew automatically navigates around obstacles and runs the pit-to-crusher loop!</li>
+              <li><b>Tap / Click to Command:</b> Tap any machine (or use <b>Fleet</b>) to select it, then tap anywhere on the map to route it there automatically.</li>
+              <li><b>Manual Override:</b> Drive any selected machine directly with <b>WASD / Arrow Keys + Spacebar</b> (or the on-screen <b>Joystick + Work Button</b> on iPad/iPhone).</li>
+            </ul>
+          </div>
+        `;
       },
 
       renderGarageModal() {
@@ -2639,11 +2910,11 @@
             <div class="bg-slate-800/90 border border-slate-700 rounded-2xl p-3 flex flex-col justify-between gap-2">
               <div>
                 <div class="flex items-center justify-between">
-                  <span class="text-2xl">${spec.icon}</span>
-                  <span class="text-[11px] font-mono-num text-slate-400">Owned: ${count}</span>
+                  ${getMachineSVG(spec.type, 42)}
+                  <span class="text-[11px] font-mono-num bg-slate-900 border border-slate-700 px-2 py-0.5 rounded-lg text-slate-300">Owned: ${count}</span>
                 </div>
-                <div class="font-extrabold text-sm text-white mt-1">${spec.label}</div>
-                <p class="text-[11px] text-slate-400 mt-0.5">${spec.desc}</p>
+                <div class="font-extrabold text-sm text-white mt-1.5">${spec.label}</div>
+                <p class="text-[11px] text-slate-400 mt-0.5 leading-snug">${spec.desc}</p>
               </div>
               <button onclick="game.buyVehicle('${spec.type}')" ${game.money < cost ? 'disabled' : ''}
                 class="btn-industrial w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs py-2 rounded-xl mt-1">
@@ -2656,25 +2927,24 @@
         html += `</div></div><div><h3 class="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-2">Upgrade Active Fleet</h3><div class="space-y-2.5">`;
 
         game.vehicles.forEach(v => {
-          const spec = VEHICLE_SPECS[v.type];
           const statBtn = (label, key) => {
             const lvl = v[key];
             const cost = 2500 * lvl;
             return lvl >= 5
-              ? `<span class="text-[11px] font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-700/50 rounded-xl px-2.5 py-1.5 text-center">${label} MAX</span>`
+              ? `<span class="text-[11px] font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-700/50 rounded-xl px-2 py-1.5 text-center">${label} MAX</span>`
               : `<button onclick="game.upgradeVehicle('${v.id}', '${key}')" ${game.money < cost ? 'disabled' : ''}
-                  class="btn-industrial bg-slate-700 hover:bg-slate-600 text-white text-[11px] font-bold rounded-xl px-2.5 py-1.5">
+                  class="btn-industrial bg-slate-700 hover:bg-slate-600 text-white text-[11px] font-bold rounded-xl px-2 py-1.5">
                   ${label} Lv.${lvl} ($${(cost / 1000).toFixed(1)}k)
                 </button>`;
           };
 
           html += `
-            <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div class="flex items-center gap-2.5">
-                <span class="text-2xl">${spec.icon}</span>
+            <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div class="flex items-center gap-3">
+                ${getMachineSVG(v.type, 40)}
                 <div>
                   <div class="font-extrabold text-sm text-white">${v.name}</div>
-                  <div class="text-[11px] text-slate-400">Cap: ${game.getVehicleCapacity(v)}t • Speed: ${Math.round(game.getVehicleSpeed(v))}</div>
+                  <div class="text-[11px] text-slate-400 font-mono-num">Cap: ${game.getVehicleCapacity(v)}t • Speed: ${Math.round(game.getVehicleSpeed(v))}</div>
                 </div>
               </div>
               <div class="grid grid-cols-3 gap-1.5">
@@ -2694,7 +2964,8 @@
         const roles = [
           {
             key: 'operators',
-            icon: '👷',
+            badge: 'OPS',
+            badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
             title: 'Machine Operators',
             count: game.staff.operators,
             cost: 3500 * game.staff.operators,
@@ -2702,7 +2973,8 @@
           },
           {
             key: 'geologist',
-            icon: '🧭',
+            badge: 'GEO',
+            badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
             title: 'Chief Geologist',
             count: game.staff.geologist,
             cost: 5000 * (game.staff.geologist + 1),
@@ -2710,7 +2982,8 @@
           },
           {
             key: 'mechanic',
-            icon: '🛠️',
+            badge: 'MECH',
+            badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40',
             title: 'Fleet Mechanic',
             count: game.staff.mechanic,
             cost: 4500 * (game.staff.mechanic + 1),
@@ -2718,7 +2991,8 @@
           },
           {
             key: 'metallurgist',
-            icon: '⚗️',
+            badge: 'MET',
+            badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-500/40',
             title: 'Lead Metallurgist',
             count: game.staff.metallurgist,
             cost: 5500 * (game.staff.metallurgist + 1),
@@ -2727,16 +3001,16 @@
         ];
 
         document.getElementById('staff-content').innerHTML = roles.map(r => `
-          <div class="bg-slate-800/85 border border-slate-700 rounded-2xl p-3.5 flex items-center justify-between gap-3">
+          <div class="bg-slate-800/85 border border-slate-700 rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div class="flex items-start gap-3">
-              <span class="text-2xl mt-0.5">${r.icon}</span>
+              <span class="font-mono-num font-black text-[11px] px-2.5 py-2 rounded-xl border ${r.badgeColor} shrink-0">${r.badge}</span>
               <div>
                 <div class="font-extrabold text-sm text-white">${r.title} <span class="text-cyan-300 font-mono-num ml-1">(Lv.${r.count})</span></div>
                 <p class="text-xs text-slate-400 mt-0.5">${r.desc}</p>
               </div>
             </div>
             <button onclick="game.hireStaff('${r.key}')" ${game.money < r.cost ? 'disabled' : ''}
-              class="btn-industrial shrink-0 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs px-3.5 py-2 rounded-xl">
+              class="btn-industrial w-full sm:w-auto shrink-0 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs px-3.5 py-2 rounded-xl">
               Hire $${r.cost.toLocaleString()}
             </button>
           </div>
@@ -2751,17 +3025,20 @@
 
         let html = `
           <div class="bg-emerald-950/40 border border-emerald-600/50 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div>
-              <div class="text-xs text-emerald-300 font-bold uppercase">Export Semi-Truck Dispatch</div>
-              <div class="text-sm text-slate-200 mt-0.5">Current Silo Cargo Value: <span class="font-mono-num font-black text-emerald-400">$${estPayout.toLocaleString()}</span></div>
-              <label class="flex items-center gap-2 text-xs text-slate-300 mt-2 cursor-pointer">
-                <input type="checkbox" ${game.autoExport ? 'checked' : ''} onchange="game.autoExport = this.checked" class="accent-emerald-500 w-4 h-4" />
-                <span>Auto-dispatch truck when total ingots ≥ 8.0t</span>
-              </label>
+            <div class="flex items-center gap-3">
+              ${getMachineSVG('semitruck', 44)}
+              <div>
+                <div class="text-xs text-emerald-300 font-bold uppercase">Export Semi-Truck Dispatch</div>
+                <div class="text-sm text-slate-200 mt-0.5">Current Silo Cargo Value: <span class="font-mono-num font-black text-emerald-400">$${estPayout.toLocaleString()}</span></div>
+                <label class="flex items-center gap-2 text-xs text-slate-300 mt-1.5 cursor-pointer">
+                  <input type="checkbox" ${game.autoExport ? 'checked' : ''} onchange="game.autoExport = this.checked" class="accent-emerald-500 w-4 h-4" />
+                  <span>Auto-dispatch truck when total ingots ≥ 8.0t</span>
+                </label>
+              </div>
             </div>
             <button onclick="game.dispatchExportTruck(); ui.closeModals();" ${game.exportTruck.state !== 'waiting' || estPayout <= 0 ? 'disabled' : ''}
-              class="btn-industrial w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs px-5 py-3 rounded-2xl">
-              🚛 Dispatch Truck Now
+              class="btn-industrial w-full sm:w-auto shrink-0 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs px-5 py-3 rounded-2xl">
+              Dispatch Truck Now
             </button>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -2774,7 +3051,7 @@
           html += `
             <div class="bg-slate-800/85 border border-slate-700 rounded-2xl p-3.5 flex items-center justify-between">
               <div class="flex items-center gap-2.5">
-                <span class="w-4 h-4 rounded-full inline-block" style="background:${o.color}"></span>
+                <span class="w-4 h-4 rounded-full inline-block shrink-0" style="background:${o.color}"></span>
                 <div>
                   <div class="font-extrabold text-sm text-white">${o.label} Ingots</div>
                   <div class="text-xs text-slate-400 font-mono-num">In Silo: ${stock.toFixed(1)}t</div>
@@ -2812,7 +3089,7 @@
                 <div class="h-full bg-amber-400 transition-all" style="width:${pct}%"></div>
               </div>
             </div>
-            <p class="text-xs text-slate-400">Tip: Dispatch the Export Semi-Truck in <b>Export & Market</b> to deliver refined ingots toward this contract.</p>
+            <p class="text-xs text-slate-400">Tip: Dispatch the Export Semi-Truck in <b>Market</b> to deliver refined ingots toward this contract.</p>
           </div>
         `;
       },
@@ -2825,7 +3102,7 @@
               class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-400" />
             <button onclick="saveSystem.saveToSlot(document.getElementById('input-save-name').value)"
               class="btn-industrial w-full sm:w-auto shrink-0 bg-indigo-500 hover:bg-indigo-400 text-white font-black text-xs px-4 py-2.5 rounded-xl">
-              💾 Save Current Site
+              Save Current Site
             </button>
           </div>
           <div class="space-y-2">
@@ -2837,18 +3114,18 @@
           list.forEach(slot => {
             html += `
               <div class="bg-slate-800/85 border border-slate-700 rounded-2xl p-3 flex items-center justify-between gap-2">
-                <div>
-                  <div class="font-extrabold text-sm text-white">${slot.name}</div>
+                <div class="min-w-0">
+                  <div class="font-extrabold text-sm text-white truncate">${slot.name}</div>
                   <div class="text-[11px] text-slate-400 font-mono-num">Day ${slot.day} • $${Math.floor(slot.money).toLocaleString()} • ${slot.savedAt}</div>
                 </div>
-                <div class="flex items-center gap-1.5">
+                <div class="flex items-center gap-1.5 shrink-0">
                   <button onclick="saveSystem.loadFromSlot('${slot.id}')"
                     class="btn-industrial bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3 py-1.5 rounded-xl">
                     Load
                   </button>
                   <button onclick="saveSystem.deleteSlot('${slot.id}')"
                     class="btn-industrial bg-slate-700 hover:bg-rose-600 text-slate-200 font-bold text-xs px-2.5 py-1.5 rounded-xl">
-                    🗑️
+                    Delete
                   </button>
                 </div>
               </div>
@@ -2862,9 +3139,9 @@
             <div class="text-xs text-slate-400">
               Generate a <b>brand-new procedural quarry site</b> with fresh mineral veins and hidden discoveries.
             </div>
-            <button onclick="game.generateNewSite(Date.now()); ui.closeModals();"
+            <button onclick="game.generateNewSite(Date.now()); ui.closeModals(); tutorial.start(true);"
               class="btn-industrial w-full sm:w-auto shrink-0 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs px-4 py-2.5 rounded-xl">
-              ✨ New Game (New Site)
+              New Game (New Site)
             </button>
           </div>
         `;
@@ -2873,69 +3150,67 @@
     };
 
     // =========================================================================
-    // 8. INTERACTIVE STEP-BY-STEP ONBOARDING TUTORIAL
+    // 8. INTERACTIVE STEP-BY-STEP ONBOARDING TUTORIAL (STRICT PLAYER-DRIVEN)
     // =========================================================================
     const tutorial = {
       active: false,
       stepIndex: 0,
-      openedMarket: false,
-      openedGarage: false,
-      openedStaff: false,
+      _advancing: false,
 
       steps: [
         {
-          title: '1. Excavate the Pit Face 🚜',
-          desc: 'Your Excavator breaks rock walls into raw ore piles. Tap the Excavator to select it, or watch its Auto-Shuttle dig!',
-          highlightUI: null,
-          checkComplete: () => {
-            const sel = game.getSelectedVehicle();
-            return (sel && sel.type === 'excavator' && game.orePiles.length > 0) || game.orePiles.length >= 2;
-          }
+          title: '1. Select Your Excavator',
+          desc: 'Tap the pulsing Excavator in the pit (or click "Fleet" below) to inspect your digging rig and watch it excavate ore.',
+          iconType: 'excavator',
+          highlightUI: 'nav-btn-fleet',
+          targetVehicleTypes: ['excavator'],
+          waitPrompt: 'Tap the Excavator or click Fleet'
         },
         {
-          title: '2. Load & Haul with Loader & Dumper 🚛',
-          desc: 'The Wheel Loader scoops ore piles and loads the Articulated Dumper at the Pit Load Zone, which hauls via A* pathfinding to the Crusher!',
-          highlightUI: null,
-          checkComplete: () => {
-            const dmp = game.vehicles.find(v => v.type === 'dumper');
-            const cr = game.facilities.crusher.rawBuffer;
-            const crTotal = cr.iron + cr.copper + cr.gold + cr.lithium;
-            return (dmp && game.getVehicleTotalCargo(dmp) > 0) || crTotal > 0;
-          }
+          title: '2. Route Your Dumper or Loader',
+          desc: 'Select your Articulated Dumper or Wheel Loader, then tap anywhere on the map (or drive with WASD / Joystick) to route it!',
+          iconType: 'dumper',
+          highlightUI: 'nav-btn-fleet',
+          targetVehicleTypes: ['dumper', 'loader'],
+          waitPrompt: 'Select Dumper/Loader & tap map'
         },
         {
-          title: '3. Upgrade Hydraulics & Fleet 🔧',
-          desc: 'Open "Workshop & Buy" in the bottom dock to upgrade Hydraulics (required to mine purple Basalt!) or buy extra machines.',
+          title: '3. Upgrade Hydraulics & Fleet',
+          desc: 'Click "Workshop" in the bottom dock to upgrade Hydraulics (needed for purple Basalt) or buy additional heavy machines.',
+          iconType: 'loader',
           highlightUI: 'nav-btn-garage',
-          checkComplete: () => tutorial.openedGarage
+          targetVehicleTypes: [],
+          waitPrompt: 'Click "Workshop" below'
         },
         {
-          title: '4. Hire Crew Specialists 👷',
-          desc: 'Open "Crew" to hire extra Operators, Geologists (+ore yield), Mechanics (+speed), and Metallurgists (+refining speed).',
-          highlightUI: 'nav-btn-staff',
-          checkComplete: () => tutorial.openedStaff
-        },
-        {
-          title: '5. Sell Ingots & Fulfill Contracts 💰',
-          desc: 'Open "Export & Market" to inspect live metal prices and dispatch the Export Semi-Truck for cash payouts!',
+          title: '4. Sell Ingots & Fulfill Contracts',
+          desc: 'Click "Market" to check live metal prices and dispatch the Export Semi-Truck for cash payouts.',
+          iconType: 'semitruck',
           highlightUI: 'nav-btn-market',
-          checkComplete: () => tutorial.openedMarket
+          targetVehicleTypes: [],
+          waitPrompt: 'Click "Market" below'
+        },
+        {
+          title: '5. Save Your Quarry Progress',
+          desc: 'Click "Saves" in the top bar anytime to create named save slots or add Mine Master to your Home Screen!',
+          iconType: 'pickaxe',
+          highlightUI: 'top-btn-saves',
+          targetVehicleTypes: [],
+          waitPrompt: 'Click "Saves" in the top bar'
         }
       ],
 
-      start(manualRestart = false) {
+      start(resetToStepOne = true) {
         this.active = true;
-        this.stepIndex = 0;
-        this.openedMarket = false;
-        this.openedGarage = false;
-        this.openedStaff = false;
+        this._advancing = false;
+        if (resetToStepOne) {
+          this.stepIndex = 0;
+        }
 
-        if (manualRestart) {
-          const exc = game.vehicles.find(v => v.type === 'excavator');
-          if (exc) {
-            game.selectVehicle(exc);
-            game.centerCameraOnSelected();
-          }
+        const loader = game.vehicles.find(v => v.type === 'loader');
+        if (loader) {
+          game.selectVehicle(loader);
+          game.centerCameraOnSelected();
         }
 
         const card = document.getElementById('tutorial-card');
@@ -2953,51 +3228,61 @@
 
         document.getElementById('tut-step-badge').textContent = `Step ${this.stepIndex + 1} / ${this.steps.length}`;
         document.getElementById('tut-progress-bar').style.width = `${((this.stepIndex + 1) / this.steps.length) * 100}%`;
+        document.getElementById('tut-icon-slot').innerHTML = getMachineSVG(step.iconType, 36);
         document.getElementById('tut-title').textContent = step.title;
         document.getElementById('tut-desc').textContent = step.desc;
-        document.getElementById('tut-status').textContent = '⏳ Try it or click Next →';
+        document.getElementById('tut-status').textContent = step.waitPrompt;
         document.getElementById('tut-next-btn').textContent =
-          this.stepIndex === this.steps.length - 1 ? 'Finish 🎉' : 'Next Step →';
+          this.stepIndex === this.steps.length - 1 ? 'Finish' : 'Next Step →';
 
-        ['nav-btn-market', 'nav-btn-garage', 'nav-btn-staff'].forEach(id => {
-          const el = document.getElementById(id);
-          if (el) el.classList.remove('pulse-amber');
-        });
+        this.clearHighlights();
         if (step.highlightUI) {
           const targetEl = document.getElementById(step.highlightUI);
           if (targetEl) targetEl.classList.add('pulse-amber');
         }
       },
 
-      update() {
-        if (!this.active) return;
-        const step = this.steps[this.stepIndex];
-        if (step && step.checkComplete()) {
-          document.getElementById('tut-status').textContent = '✅ Step complete!';
-          if (!this._advancing) {
-            this._advancing = true;
-            setTimeout(() => {
-              this._advancing = false;
-              if (this.active) this.nextStep();
-            }, 950);
-          }
-        }
+      clearHighlights() {
+        ['nav-btn-fleet', 'nav-btn-market', 'nav-btn-garage', 'nav-btn-staff', 'top-btn-saves'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.classList.remove('pulse-amber');
+        });
       },
 
-      notifyEvent(evt) {
-        if (evt === 'open_market') this.openedMarket = true;
-        if (evt === 'open_garage') this.openedGarage = true;
-        if (evt === 'open_staff') this.openedStaff = true;
+      notifyEvent(evt, payload) {
+        if (!this.active || this._advancing) return;
+
+        let matched = false;
+        if (this.stepIndex === 0 && evt === 'select_vehicle' && payload === 'excavator') {
+          matched = true;
+        } else if (this.stepIndex === 1 && evt === 'route_vehicle' && (payload === 'dumper' || payload === 'loader')) {
+          matched = true;
+        } else if (this.stepIndex === 2 && evt === 'open_garage') {
+          matched = true;
+        } else if (this.stepIndex === 3 && evt === 'open_market') {
+          matched = true;
+        } else if (this.stepIndex === 4 && evt === 'open_saves') {
+          matched = true;
+        }
+
+        if (matched) {
+          this._advancing = true;
+          document.getElementById('tut-status').textContent = 'Step complete!';
+          setTimeout(() => {
+            this._advancing = false;
+            if (this.active) this.nextStep();
+          }, 650);
+        }
       },
 
       shouldHighlightVehicle(v) {
         if (!this.active) return false;
-        if (this.stepIndex === 0 && v.type === 'excavator') return true;
-        if (this.stepIndex === 1 && (v.type === 'loader' || v.type === 'dumper')) return true;
-        return false;
+        const step = this.steps[this.stepIndex];
+        return step && step.targetVehicleTypes.includes(v.type);
       },
 
       nextStep() {
+        this._advancing = false;
         this.stepIndex++;
         if (this.stepIndex >= this.steps.length) {
           this.complete();
@@ -3012,11 +3297,8 @@
         localStorage.setItem(STORAGE_KEYS.TUTORIAL_DONE, 'true');
         const card = document.getElementById('tutorial-card');
         if (card) card.classList.add('hidden');
-        ['nav-btn-market', 'nav-btn-garage', 'nav-btn-staff'].forEach(id => {
-          const el = document.getElementById(id);
-          if (el) el.classList.remove('pulse-amber');
-        });
-        ui.toast('Tutorial closed. Reopen anytime via the Guide button!', 'info');
+        this.clearHighlights();
+        ui.toast('Tutorial closed. Reopen anytime via Guide → Start Interactive Tutorial!', 'info');
       },
 
       complete() {
@@ -3024,12 +3306,9 @@
         localStorage.setItem(STORAGE_KEYS.TUTORIAL_DONE, 'true');
         const card = document.getElementById('tutorial-card');
         if (card) card.classList.add('hidden');
-        ['nav-btn-market', 'nav-btn-garage', 'nav-btn-staff'].forEach(id => {
-          const el = document.getElementById(id);
-          if (el) el.classList.remove('pulse-amber');
-        });
+        this.clearHighlights();
         soundFX.playJackpot();
-        ui.toast('🎉 Tutorial Complete! Build your mining empire!', 'success');
+        ui.toast('Tutorial Complete! Build your mining empire!', 'success');
       }
     };
 
