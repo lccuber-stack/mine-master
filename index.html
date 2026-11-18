@@ -1,0 +1,3043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Mine Master" />
+  <meta name="theme-color" content="#0f172a" />
+  <title>Mine Master — Heavy Quarry & Mining Simulator</title>
+
+  <!-- Dynamic Home Screen Icon & Web Manifest links populated at runtime -->
+  <link id="apple-touch-icon" rel="apple-touch-icon" href="" />
+  <link id="favicon-icon" rel="icon" type="image/png" href="" />
+  <link id="web-manifest" rel="manifest" href="" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-left: env(safe-area-inset-left, 0px);
+      --safe-right: env(safe-area-inset-right, 0px);
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #0b1120;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #f8fafc;
+      touch-action: none;
+    }
+
+    .font-mono-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    #gameCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      background: #141923;
+      cursor: grab;
+    }
+
+    #gameCanvas:active {
+      cursor: grabbing;
+    }
+
+    /* Industrial Hazard Stripes */
+    .hazard-stripe {
+      background: repeating-linear-gradient(
+        -45deg,
+        #f59e0b,
+        #f59e0b 10px,
+        #1e293b 10px,
+        #1e293b 20px
+      );
+    }
+
+    /* Tactile Industrial Buttons */
+    .btn-industrial {
+      transition: transform 0.08s ease, filter 0.15s ease, box-shadow 0.15s ease;
+      box-shadow: 0 3px 0 rgba(0, 0, 0, 0.45);
+    }
+    .btn-industrial:active:not(:disabled) {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
+    }
+    .btn-industrial:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    /* Tutorial Target Pulse */
+    @keyframes pulseAmber {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.85); }
+      50% { box-shadow: 0 0 0 8px rgba(251, 191, 36, 0); }
+    }
+    .pulse-amber {
+      animation: pulseAmber 1.5s infinite;
+      outline: 2px solid #fbbf24;
+    }
+
+    /* Custom Scrollbars inside Modals */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.5);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #475569;
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="relative w-screen h-screen overflow-hidden bg-slate-950 text-slate-100">
+
+  <!-- MAIN INTERACTIVE SIMULATION CANVAS -->
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- TOP HUD BAR -->
+  <header class="fixed top-0 left-0 right-0 z-20 pointer-events-none px-2.5 sm:px-4 pt-[calc(0.5rem+var(--safe-top))]">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+
+      <!-- Left: Brand Badge + Balance -->
+      <div class="pointer-events-auto flex items-center gap-2 sm:gap-3 bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-2xl px-3 py-1.5 shadow-xl">
+        <div class="w-9 h-9 rounded-xl bg-amber-500 flex items-center justify-center text-slate-950 font-black text-lg shadow-inner shrink-0">
+          ⛏️
+        </div>
+        <div class="leading-tight">
+          <div class="flex items-center gap-1.5">
+            <span class="font-black text-xs sm:text-sm tracking-wide text-amber-400">MINE MASTER</span>
+            <span id="hud-version" class="text-[10px] font-mono-num bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded-md border border-slate-700">v3.1.0</span>
+          </div>
+          <div class="flex items-center gap-2 text-[11px] text-slate-400">
+            <span id="hud-day">Day 1</span>
+            <span>•</span>
+            <span id="hud-weather">☀️ Clear</span>
+          </div>
+        </div>
+        <div class="h-7 w-px bg-slate-700/80 mx-0.5"></div>
+        <div class="leading-tight">
+          <div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Balance</div>
+          <div id="hud-money" class="font-mono-num font-extrabold text-sm sm:text-base text-emerald-400">$25,000</div>
+        </div>
+      </div>
+
+      <!-- Center: Crusher Buffer & Refined Ingot Silos -->
+      <div class="pointer-events-auto hidden md:flex items-center gap-2 bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-2xl px-3 py-1.5 shadow-xl text-xs">
+        <div class="flex items-center gap-1.5 pr-2 border-r border-slate-700">
+          <span>⚙️</span>
+          <div>
+            <div class="text-[10px] text-slate-400 uppercase font-bold">Crusher</div>
+            <div id="hud-crusher" class="font-mono-num font-bold text-amber-300">0/60t</div>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 font-mono-num">
+          <span class="flex items-center gap-1 bg-slate-800/90 px-2 py-1 rounded-lg border border-slate-700" title="Refined Iron Ingots">
+            <span class="w-2.5 h-2.5 rounded-full bg-slate-400 inline-block"></span>
+            <span id="hud-silo-iron">2.0t</span>
+          </span>
+          <span class="flex items-center gap-1 bg-slate-800/90 px-2 py-1 rounded-lg border border-slate-700" title="Refined Copper Plates">
+            <span class="w-2.5 h-2.5 rounded-full bg-orange-500 inline-block"></span>
+            <span id="hud-silo-copper">1.0t</span>
+          </span>
+          <span class="flex items-center gap-1 bg-slate-800/90 px-2 py-1 rounded-lg border border-slate-700" title="Refined Gold Bars">
+            <span class="w-2.5 h-2.5 rounded-full bg-yellow-400 inline-block"></span>
+            <span id="hud-silo-gold">0.0t</span>
+          </span>
+          <span class="flex items-center gap-1 bg-slate-800/90 px-2 py-1 rounded-lg border border-slate-700" title="Battery-Grade Lithium">
+            <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 inline-block"></span>
+            <span id="hud-silo-lithium">0.0t</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- Right: Quick Actions (Update, Sound, New Game, Saves, Guide) -->
+      <div class="pointer-events-auto flex items-center gap-1.5 bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-2xl p-1.5 shadow-xl">
+        <button id="btn-check-update" onclick="appUpdater.checkForUpdates(true)" title="Fetch latest version without losing saved progress"
+          class="btn-industrial flex items-center gap-1 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-600 rounded-xl px-2.5 py-1.5 text-xs font-bold">
+          <span id="update-icon">🔄</span>
+          <span class="hidden sm:inline" id="update-label">Update</span>
+        </button>
+
+        <button id="btn-sound" onclick="soundFX.toggle()" title="Toggle Sound Effects"
+          class="btn-industrial bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 rounded-xl p-1.5 px-2.5 text-xs font-bold">
+          🔊
+        </button>
+
+        <button id="btn-new-game" onclick="ui.openModal('modal-newgame')" title="Generate a brand new procedural mine site"
+          class="btn-industrial flex items-center gap-1 bg-rose-600 hover:bg-rose-500 text-white rounded-xl px-2.5 py-1.5 text-xs font-bold">
+          <span>✨</span>
+          <span class="hidden sm:inline">New Game</span>
+        </button>
+
+        <button onclick="ui.openModal('modal-saves')" title="Save or Load Quarry Slots"
+          class="btn-industrial flex items-center gap-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl px-2.5 py-1.5 text-xs font-bold">
+          <span>💾</span>
+          <span class="hidden sm:inline">Saves</span>
+        </button>
+
+        <button id="btn-guide" onclick="ui.openModal('modal-help')" title="Interactive Tutorial & How to Play"
+          class="btn-industrial flex items-center gap-1 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl px-2.5 py-1.5 text-xs font-extrabold">
+          <span>📖</span>
+          <span class="hidden sm:inline">Guide</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Secondary Row: Active Contract Pill -->
+    <div class="max-w-7xl mx-auto mt-1.5 flex items-center justify-between gap-2">
+      <div class="pointer-events-auto md:hidden flex items-center gap-1.5 bg-slate-900/85 backdrop-blur-md border border-slate-700/80 rounded-xl px-2.5 py-1 text-[11px] font-mono-num">
+        <span class="text-amber-300 font-bold" id="hud-crusher-mobile">⚙️ 0/60t</span>
+        <span class="text-slate-600">|</span>
+        <span class="text-slate-300" id="hud-silos-mobile">Fe:2 Cu:1 Au:0 Li:0</span>
+      </div>
+
+      <button onclick="ui.openModal('modal-contracts')"
+        class="pointer-events-auto ml-auto flex items-center gap-2 bg-slate-900/90 hover:bg-slate-800/95 backdrop-blur-md border border-amber-500/40 rounded-xl px-3 py-1 text-xs shadow-lg transition">
+        <span>📋</span>
+        <span id="hud-contract-text" class="font-semibold text-amber-200 truncate max-w-[200px] sm:max-w-xs">Contract: Loading...</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- TOAST NOTIFICATIONS -->
+  <div id="toast-container" class="fixed top-24 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-2 pointer-events-none w-full max-w-md px-4"></div>
+
+  <!-- INTERACTIVE STEP-BY-STEP ONBOARDING TUTORIAL BANNER -->
+  <div id="tutorial-card" class="hidden fixed top-24 right-3 sm:right-5 z-30 pointer-events-auto w-[calc(100vw-1.5rem)] max-w-sm bg-slate-900/95 backdrop-blur-md border-2 border-amber-400 rounded-3xl p-4 shadow-2xl transition-all">
+    <div class="flex items-center justify-between gap-2 mb-2">
+      <div class="flex items-center gap-2">
+        <span class="bg-amber-500 text-slate-950 font-black text-[11px] px-2 py-0.5 rounded-lg uppercase tracking-wider">Tutorial</span>
+        <span id="tut-step-badge" class="font-mono-num text-xs font-bold text-amber-300">Step 1 / 5</span>
+      </div>
+      <button onclick="tutorial.skip()" class="text-[11px] font-bold text-slate-400 hover:text-white px-2 py-0.5 rounded-lg bg-slate-800">
+        Skip ✕
+      </button>
+    </div>
+
+    <!-- Step Progress Bar -->
+    <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden mb-2.5">
+      <div id="tut-progress-bar" class="bg-amber-400 h-full transition-all duration-300" style="width: 20%"></div>
+    </div>
+
+    <h3 id="tut-title" class="font-black text-sm sm:text-base text-white mb-1">1. Excavate the Pit Face</h3>
+    <p id="tut-desc" class="text-xs text-slate-300 leading-relaxed mb-3">
+      Your Excavator breaks rock walls into ore piles. Select the Excavator or watch it dig!
+    </p>
+
+    <div class="flex items-center justify-between gap-2">
+      <span id="tut-status" class="text-[11px] font-bold text-cyan-300">⏳ Waiting for action...</span>
+      <button id="tut-next-btn" onclick="tutorial.nextStep()"
+        class="btn-industrial bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs px-3.5 py-1.5 rounded-xl">
+        Next Step →
+      </button>
+    </div>
+  </div>
+
+  <!-- SELECTED MACHINE CONTROL CARD (Bottom Left) -->
+  <div id="selected-vehicle-card" class="fixed bottom-[calc(4.75rem+var(--safe-bottom))] left-2.5 sm:left-4 z-20 pointer-events-auto bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-2xl p-2.5 sm:p-3 shadow-2xl w-[235px] sm:w-[275px] transition-all">
+    <div class="flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2 min-w-0">
+        <span id="sel-v-icon" class="text-xl sm:text-2xl">🚜</span>
+        <div class="min-w-0">
+          <div id="sel-v-name" class="font-extrabold text-xs sm:text-sm text-white truncate">Excavator #1</div>
+          <div id="sel-v-state" class="text-[11px] text-cyan-300 truncate font-medium">🤖 Auto-Shuttle Active</div>
+        </div>
+      </div>
+      <button id="btn-toggle-ai" onclick="game.toggleSelectedAI()"
+        class="btn-industrial shrink-0 px-2.5 py-1 rounded-xl text-[11px] font-extrabold bg-cyan-500 text-slate-950">
+        Auto: ON
+      </button>
+    </div>
+
+    <!-- Load Progress Bar -->
+    <div class="mt-2">
+      <div class="flex justify-between text-[10px] font-mono-num text-slate-400 mb-0.5">
+        <span>Payload</span>
+        <span id="sel-v-cargo">0 / 12 t</span>
+      </div>
+      <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+        <div id="sel-v-bar" class="h-full bg-amber-400 transition-all duration-150" style="width: 0%"></div>
+      </div>
+    </div>
+
+    <div class="mt-2 flex items-center justify-between text-[10px] text-slate-400">
+      <span>Tap map to route • WASD / Space</span>
+      <button onclick="game.triggerManualAction()" class="text-amber-400 font-bold hover:underline">Action ⚡</button>
+    </div>
+  </div>
+
+  <!-- MOBILE VIRTUAL JOYSTICK & ACTION BUTTON (Visible on Touch Devices) -->
+  <div id="mobile-controls" class="fixed bottom-[calc(4.75rem+var(--safe-bottom))] right-3 z-20 pointer-events-none flex items-end gap-3 md:hidden">
+    <button id="btn-mobile-action" ontouchstart="game.triggerManualAction(); event.preventDefault();" onclick="game.triggerManualAction()"
+      class="pointer-events-auto w-14 h-14 rounded-2xl bg-amber-500/90 active:bg-amber-400 text-slate-950 font-black text-xs shadow-2xl border-2 border-amber-300 flex flex-col items-center justify-center">
+      <span class="text-lg leading-none">⛏️</span>
+      <span class="text-[9px] uppercase mt-0.5">Work</span>
+    </button>
+
+    <div id="joystick-zone" class="pointer-events-auto relative w-24 h-24 rounded-full bg-slate-900/75 border-2 border-slate-600/80 backdrop-blur-md flex items-center justify-center shadow-2xl">
+      <div id="joystick-knob" class="w-10 h-10 rounded-full bg-amber-400/90 border-2 border-white shadow-lg pointer-events-none transition-transform duration-75"></div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAVIGATION DOCK -->
+  <nav class="fixed bottom-0 left-0 right-0 z-20 pointer-events-none px-2 sm:px-4 pb-[calc(0.5rem+var(--safe-bottom))]">
+    <div class="max-w-2xl mx-auto pointer-events-auto flex items-center justify-between gap-1.5 bg-slate-900/95 backdrop-blur-md border border-slate-700/90 rounded-2xl p-1.5 shadow-2xl overflow-x-auto">
+      <button onclick="game.cycleVehicle()" class="btn-industrial flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-600 rounded-xl px-3 py-2 text-xs font-bold shrink-0">
+        <span>🚜</span>
+        <span>Fleet (<span id="nav-v-count">3</span>)</span>
+      </button>
+
+      <button id="nav-btn-garage" onclick="ui.openModal('modal-garage')" class="btn-industrial flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl px-3 py-2 text-xs font-extrabold shrink-0">
+        <span>🔧</span>
+        <span>Workshop & Buy</span>
+      </button>
+
+      <button id="nav-btn-staff" onclick="ui.openModal('modal-staff')" class="btn-industrial flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-600 rounded-xl px-3 py-2 text-xs font-bold shrink-0">
+        <span>👷</span>
+        <span>Crew</span>
+      </button>
+
+      <button id="nav-btn-market" onclick="ui.openModal('modal-market')" class="btn-industrial flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl px-3 py-2 text-xs font-extrabold shrink-0">
+        <span>🚛</span>
+        <span>Export & Market</span>
+      </button>
+
+      <button onclick="game.centerCameraOnSelected()" title="Center camera on selected machine" class="btn-industrial bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600 rounded-xl p-2 text-xs font-bold shrink-0">
+        🎯
+      </button>
+    </div>
+  </nav>
+
+  <!-- ==================== MODALS ==================== -->
+
+  <!-- NEW GAME CONFIRMATION MODAL -->
+  <div id="modal-newgame" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 backdrop-blur-md p-4">
+    <div class="bg-slate-900 border-2 border-rose-500/70 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
+      <div class="hazard-stripe h-2 w-full"></div>
+      <div class="p-5 space-y-4">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-2xl bg-rose-500/20 border border-rose-500/50 flex items-center justify-center text-2xl shrink-0">✨</div>
+          <div>
+            <h2 class="text-lg font-black text-white">Start New Quarry Site?</h2>
+            <p class="text-xs text-slate-400">Procedural Terrain & Mineral Vein Generator</p>
+          </div>
+        </div>
+        <p class="text-xs sm:text-sm text-slate-300 leading-relaxed bg-slate-800/80 border border-slate-700 rounded-2xl p-3.5">
+          Generate a brand new procedural mine site? Current unsaved progress will be replaced. (Tip: Save your current quarry in <b>Saves</b> first if you want to return to it later!)
+        </p>
+        <div class="flex flex-col-reverse sm:flex-row items-center justify-end gap-2 pt-1">
+          <button onclick="ui.closeModals()"
+            class="btn-industrial w-full sm:w-auto bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs px-4 py-2.5 rounded-xl border border-slate-600">
+            Cancel
+          </button>
+          <button onclick="game.generateNewSite(Date.now()); ui.closeModals();"
+            class="btn-industrial w-full sm:w-auto bg-rose-600 hover:bg-rose-500 text-white font-black text-xs px-5 py-2.5 rounded-xl">
+            ✨ Generate New Site
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STARTUP ONBOARDING / HOW TO PLAY & GOAL MODAL -->
+  <div id="modal-help" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 backdrop-blur-md p-3 sm:p-6">
+    <div class="bg-slate-900 border-2 border-amber-500/70 rounded-3xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="hazard-stripe h-2.5 w-full"></div>
+      <div class="flex items-center justify-between px-5 py-4 border-b border-slate-800">
+        <div class="flex items-center gap-2.5">
+          <span class="text-2xl">⛏️</span>
+          <div>
+            <h2 class="text-lg sm:text-xl font-black text-amber-400 tracking-tight">Welcome to MINE MASTER</h2>
+            <p class="text-xs text-slate-400">Heavy Quarry Operations, Ore Processing & Fleet Logistics</p>
+          </div>
+        </div>
+        <button onclick="ui.closeModals()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl w-9 h-9 font-bold">✕</button>
+      </div>
+
+      <div class="p-4 sm:p-5 overflow-y-auto space-y-3.5 text-xs sm:text-sm text-slate-300 leading-relaxed">
+        <!-- Mission Goal -->
+        <div class="bg-gradient-to-r from-amber-500/15 to-emerald-500/10 border border-amber-500/40 rounded-2xl p-3.5">
+          <h3 class="font-black text-amber-400 text-sm uppercase tracking-wide mb-1">🏆 Your Goal</h3>
+          <p>
+            Turn a rugged open-pit quarry into a high-output mining empire! Dig deep through Dirt, Limestone, Granite, and purple Basalt to uncover rich seams of <b>Iron, Copper, Gold, Lithium</b>, and rare <b>Meteorites & Crystal Geodes</b>. Fulfill industrial contracts, upgrade hydraulics, and maximize profits.
+          </p>
+        </div>
+
+        <!-- Logistics Flow -->
+        <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-3.5">
+          <h3 class="font-extrabold text-cyan-300 mb-1.5">🔄 How the Quarry Logistics Loop Works</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+            <div class="bg-slate-900/90 border border-slate-700/80 rounded-xl p-2.5">
+              <div class="font-bold text-amber-400">1. 🚜 Excavator (Pit Face)</div>
+              <p class="text-slate-400 mt-0.5">Breaks rock seams along the quarry wall and piles raw ore onto the pit floor. Upgrade Hydraulics to break purple Basalt!</p>
+            </div>
+            <div class="bg-slate-900/90 border border-slate-700/80 rounded-xl p-2.5">
+              <div class="font-bold text-orange-400">2. 🏗️ Wheel Loader (Pit Load Zone)</div>
+              <p class="text-slate-400 mt-0.5">Scoops loose ore piles and loads them into the Articulated Dumper (or directly into the Crusher).</p>
+            </div>
+            <div class="bg-slate-900/90 border border-slate-700/80 rounded-xl p-2.5">
+              <div class="font-bold text-yellow-300">3. 🚛 Articulated Dumper (Smart A* Haul)</div>
+              <p class="text-slate-400 mt-0.5">Uses smart pathfinding to shuttle heavy 24t+ loads back and forth from the Pit Load Zone to the <b>Crusher Plant</b>.</p>
+            </div>
+            <div class="bg-slate-900/90 border border-slate-700/80 rounded-xl p-2.5">
+              <div class="font-bold text-emerald-400">4. ⚙️ Crusher & Export Semi-Truck</div>
+              <p class="text-slate-400 mt-0.5">Refines raw rock into metal ingots, loads the Export Semi-Truck via crane, and sells for cash!</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-3.5">
+          <h3 class="font-extrabold text-emerald-400 mb-1">🎮 Intuitive Controls</h3>
+          <ul class="list-disc list-inside space-y-1 text-xs text-slate-300">
+            <li><b>Smart Auto-Shuttle:</b> Your starter crew automatically navigates around obstacles and runs the pit-to-crusher loop!</li>
+            <li><b>Tap / Click to Command:</b> Tap any machine to select it, then tap anywhere on the map to route it there automatically.</li>
+            <li><b>Manual Override:</b> Drive any selected machine directly with <b>WASD / Arrow Keys + Spacebar</b> (or the on-screen <b>Joystick + Action Button</b> on iPad/iPhone).</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Footer with Startup Checkbox, Interactive Tutorial & Start Button -->
+      <div class="px-5 py-3.5 bg-slate-950/90 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <label class="flex items-center gap-2.5 cursor-pointer text-xs text-slate-300 select-none">
+          <input id="chk-show-startup" type="checkbox" checked onchange="ui.toggleStartupPref(this.checked)"
+            class="w-4 h-4 rounded accent-amber-500 cursor-pointer" />
+          <span>Show guide on startup</span>
+        </label>
+        <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <button onclick="ui.closeModals(); tutorial.start(true);"
+            class="btn-industrial flex-1 sm:flex-initial bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-extrabold text-xs sm:text-sm px-4 py-2.5 rounded-2xl">
+            🎓 Interactive Tutorial
+          </button>
+          <button onclick="ui.closeModals()"
+            class="btn-industrial flex-1 sm:flex-initial bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs sm:text-sm px-5 py-2.5 rounded-2xl">
+            🚀 Play Now
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WORKSHOP & FLEET BUY MODAL -->
+  <div id="modal-garage" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 backdrop-blur-md p-3 sm:p-6">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-3xl max-h-[88vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-slate-800">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">🔧</span>
+          <h2 class="text-lg font-black text-amber-400">Workshop & Heavy Fleet</h2>
+        </div>
+        <button onclick="ui.closeModals()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl w-9 h-9 font-bold">✕</button>
+      </div>
+      <div id="garage-content" class="p-4 sm:p-5 overflow-y-auto space-y-4"></div>
+    </div>
+  </div>
+
+  <!-- CREW & SPECIALISTS MODAL -->
+  <div id="modal-staff" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 backdrop-blur-md p-3 sm:p-6">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-2xl max-h-[88vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-slate-800">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">👷</span>
+          <h2 class="text-lg font-black text-cyan-300">Crew & Mining Specialists</h2>
+        </div>
+        <button onclick="ui.closeModals()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl w-9 h-9 font-bold">✕</button>
+      </div>
+      <div id="staff-content" class="p-4 sm:p-5 overflow-y-auto space-y-3"></div>
+    </div>
+  </div>
+
+  <!-- EXPORT & COMMODITY MARKET MODAL -->
+  <div id="modal-market" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 backdrop-blur-md p-3 sm:p-6">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-2xl max-h-[88vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-slate-800">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">🚛</span>
+          <h2 class="text-lg font-black text-emerald-400">Export Bay & Commodity Market</h2>
+        </div>
+        <button onclick="ui.closeModals()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl w-9 h-9 font-bold">✕</button>
+      </div>
+      <div id="market-content" class="p-4 sm:p-5 overflow-y-auto space-y-4"></div>
+    </div>
+  </div>
+
+  <!-- CONTRACTS MODAL -->
+  <div id="modal-contracts" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 backdrop-blur-md p-3 sm:p-6">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-xl max-h-[88vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-slate-800">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">📋</span>
+          <h2 class="text-lg font-black text-amber-300">Active Industrial Contract</h2>
+        </div>
+        <button onclick="ui.closeModals()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl w-9 h-9 font-bold">✕</button>
+      </div>
+      <div id="contracts-content" class="p-4 sm:p-5 overflow-y-auto space-y-4"></div>
+    </div>
+  </div>
+
+  <!-- SAVE SLOTS & HOME SCREEN ICON MODAL -->
+  <div id="modal-saves" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 backdrop-blur-md p-3 sm:p-6">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-2xl max-h-[88vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-slate-800">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">💾</span>
+          <h2 class="text-lg font-black text-indigo-400">Quarry Saves & Home Screen App</h2>
+        </div>
+        <button onclick="ui.closeModals()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl w-9 h-9 font-bold">✕</button>
+      </div>
+      <div id="saves-content" class="p-4 sm:p-5 overflow-y-auto space-y-4"></div>
+    </div>
+  </div>
+
+  <!-- ==================== JAVASCRIPT GAME ENGINE ==================== -->
+  <script>
+    const APP_VERSION = '3.1.0';
+    const STORAGE_KEYS = {
+      AUTOSAVE: 'minemaster_autosave_v3',
+      SAVELIST: 'minemaster_savelist_v3',
+      VERSION: 'minemaster_installed_version',
+      SHOW_STARTUP: 'minemaster_show_startup_v3',
+      TUTORIAL_DONE: 'minemaster_tutorial_done_v3'
+    };
+
+    // =========================================================================
+    // 1. HOME SCREEN ICON & WEB APP MANIFEST GENERATOR
+    // =========================================================================
+    const appIconGenerator = {
+      dataUrl: '',
+      init() {
+        try {
+          const c = document.createElement('canvas');
+          c.width = 512;
+          c.height = 512;
+          const ctx = c.getContext('2d');
+
+          // Dark slate background with rounded corners
+          const grad = ctx.createLinearGradient(0, 0, 512, 512);
+          grad.addColorStop(0, '#1e293b');
+          grad.addColorStop(1, '#090d16');
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.roundRect(0, 0, 512, 512, 110);
+          ctx.fill();
+
+          // Industrial Amber Border
+          ctx.strokeStyle = '#f59e0b';
+          ctx.lineWidth = 22;
+          ctx.beginPath();
+          ctx.roundRect(22, 22, 468, 468, 92);
+          ctx.stroke();
+
+          // Mountain Silhouette
+          ctx.fillStyle = '#334155';
+          ctx.beginPath();
+          ctx.moveTo(75, 365);
+          ctx.lineTo(195, 165);
+          ctx.lineTo(295, 290);
+          ctx.lineTo(355, 205);
+          ctx.lineTo(440, 365);
+          ctx.closePath();
+          ctx.fill();
+
+          // Gold Nugget / Crystal Accent
+          ctx.fillStyle = '#fbbf24';
+          ctx.beginPath();
+          ctx.moveTo(256, 125);
+          ctx.lineTo(306, 185);
+          ctx.lineTo(256, 245);
+          ctx.lineTo(206, 185);
+          ctx.closePath();
+          ctx.fill();
+
+          // Title Banner
+          ctx.fillStyle = '#f59e0b';
+          ctx.beginPath();
+          ctx.roundRect(66, 345, 380, 82, 24);
+          ctx.fill();
+
+          ctx.fillStyle = '#0f172a';
+          ctx.font = '900 48px Inter, system-ui, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('MINE MASTER', 256, 388);
+
+          this.dataUrl = c.toDataURL('image/png');
+          document.getElementById('apple-touch-icon').href = this.dataUrl;
+          document.getElementById('favicon-icon').href = this.dataUrl;
+
+          const manifest = {
+            name: 'Mine Master — Quarry Simulator',
+            short_name: 'Mine Master',
+            start_url: window.location.href.split('#')[0],
+            display: 'standalone',
+            background_color: '#0b1120',
+            theme_color: '#0f172a',
+            icons: [{ src: this.dataUrl, sizes: '512x512', type: 'image/png' }]
+          };
+          const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+          document.getElementById('web-manifest').href = URL.createObjectURL(blob);
+        } catch (err) {
+          console.warn('Icon generation fallback:', err);
+        }
+      }
+    };
+
+    // =========================================================================
+    // 2. AUTO-UPDATE & VERSION CHECKER (PRESERVES ALL LOCAL SAVES)
+    // =========================================================================
+    const appUpdater = {
+      init() {
+        const prev = localStorage.getItem(STORAGE_KEYS.VERSION);
+        localStorage.setItem(STORAGE_KEYS.VERSION, APP_VERSION);
+        if (prev && prev !== APP_VERSION) {
+          setTimeout(() => {
+            ui.toast(`Updated to Mine Master v${APP_VERSION}! Your saves are intact.`, 'success');
+          }, 900);
+        }
+      },
+      async checkForUpdates(manual = false) {
+        const icon = document.getElementById('update-icon');
+        const label = document.getElementById('update-label');
+        if (icon) icon.classList.add('animate-spin');
+        if (label) label.textContent = 'Checking...';
+
+        try {
+          saveSystem.autoSave();
+          if ('serviceWorker' in navigator) {
+            const regs = await navigator.serviceWorker.getRegistrations();
+            for (const reg of regs) await reg.update();
+          }
+          await new Promise(r => setTimeout(r, 550));
+          if (manual) {
+            ui.toast(`Mine Master v${APP_VERSION} is up to date! Progress safely backed up.`, 'info');
+          }
+        } catch (e) {
+          if (manual) ui.toast(`Running latest offline build v${APP_VERSION}.`, 'info');
+        } finally {
+          if (icon) icon.classList.remove('animate-spin');
+          if (label) label.textContent = 'Update';
+        }
+      }
+    };
+
+    // =========================================================================
+    // 3. PROCEDURAL WEB AUDIO SOUND EFFECTS
+    // =========================================================================
+    const soundFX = {
+      ctx: null,
+      muted: false,
+      ensure() {
+        if (!this.ctx && !this.muted) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) this.ctx = new AudioCtx();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume().catch(() => {});
+        }
+      },
+      toggle() {
+        this.muted = !this.muted;
+        document.getElementById('btn-sound').textContent = this.muted ? '🔇' : '🔊';
+        if (!this.muted) this.playTone(520, 0.08, 'sine', 0.1);
+      },
+      playTone(freq, dur = 0.1, type = 'triangle', vol = 0.1) {
+        if (this.muted) return;
+        try {
+          this.ensure();
+          if (!this.ctx) return;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+          gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + dur);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + dur);
+        } catch (_) {}
+      },
+      playDig() {
+        this.playTone(135 + Math.random() * 45, 0.12, 'sawtooth', 0.08);
+      },
+      playCash() {
+        this.playTone(587.33, 0.09, 'sine', 0.12);
+        setTimeout(() => this.playTone(880, 0.16, 'sine', 0.12), 75);
+      },
+      playJackpot() {
+        [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
+          setTimeout(() => this.playTone(f, 0.18, 'triangle', 0.13), i * 85);
+        });
+      }
+    };
+
+    // =========================================================================
+    // 4. GAME CONSTANTS & SPECIFICATIONS
+    // =========================================================================
+    const TILE_SIZE = 48;
+    const MAP_COLS = 36;
+    const MAP_ROWS = 24;
+
+    const TERRAIN = {
+      ROAD: 0,
+      PIT_FLOOR: 1,
+      DIRT: 2,
+      LIMESTONE: 3,
+      GRANITE: 4,
+      BEDROCK: 5
+    };
+
+    const ORES = {
+      iron: { key: 'iron', label: 'Iron', color: '#94a3b8', basePrice: 180 },
+      copper: { key: 'copper', label: 'Copper', color: '#f97316', basePrice: 340 },
+      gold: { key: 'gold', label: 'Gold', color: '#facc15', basePrice: 850 },
+      lithium: { key: 'lithium', label: 'Lithium', color: '#38bdf8', basePrice: 1450 }
+    };
+
+    const VEHICLE_SPECS = {
+      excavator: {
+        type: 'excavator',
+        label: 'Excavator',
+        icon: '🚜',
+        color: '#f59e0b',
+        baseCost: 8500,
+        baseSpeed: 105,
+        baseCap: 12,
+        desc: 'Breaks quarry rock walls and creates raw ore piles.'
+      },
+      loader: {
+        type: 'loader',
+        label: 'Wheel Loader',
+        icon: '🏗️',
+        color: '#fb923c',
+        baseCost: 7500,
+        baseSpeed: 145,
+        baseCap: 14,
+        desc: 'Scoops loose ore piles and loads the Articulated Dumper or Crusher.'
+      },
+      dumper: {
+        type: 'dumper',
+        label: 'Articulated Dumper',
+        icon: '🚛',
+        color: '#eab308',
+        baseCost: 9500,
+        baseSpeed: 165,
+        baseCap: 26,
+        desc: 'Hauls heavy 26t+ ore loads from the Pit Load Zone to the Crusher Plant.'
+      }
+    };
+
+    // =========================================================================
+    // 5. MAIN SIMULATION & A* PATHFINDING ENGINE
+    // =========================================================================
+    const game = {
+      initialized: false,
+      canvas: null,
+      ctx: null,
+      width: 0,
+      height: 0,
+
+      cam: { x: 120, y: 180, zoom: 0.92, dragging: false, lastX: 0, lastY: 0, followSelected: false },
+
+      seed: 1,
+      siteName: 'Ironridge Quarry',
+      money: 25000,
+      totalEarned: 0,
+      day: 1,
+      timeOfDay: 0.28,
+      weather: 'clear',
+      weatherTimer: 50,
+
+      grid: [],
+      orePiles: [],
+      particles: [],
+      floatingTexts: [],
+      conveyorItems: [],
+
+      facilities: {
+        crusher: { x: 240, y: 220, w: 160, h: 115, rawBuffer: { iron: 0, copper: 0, gold: 0, lithium: 0 }, maxBuffer: 60, animPhase: 0 },
+        exportBay: { x: 240, y: 520, w: 160, h: 115, craneX: 0 },
+        garage: { x: 240, y: 800, w: 160, h: 100 }
+      },
+
+      pitLoadZone: { x: 640, y: 580 },
+
+      silos: { iron: 2, copper: 1, gold: 0, lithium: 0 },
+      marketPrices: { iron: 180, copper: 340, gold: 850, lithium: 1450 },
+      priceTrend: { iron: 1, copper: 1, gold: 1, lithium: 1 },
+      autoExport: true,
+
+      exportTruck: {
+        state: 'waiting',
+        x: 130,
+        y: 578,
+        timer: 0,
+        cargoValue: 0,
+        loadedBars: 0
+      },
+
+      vehicles: [],
+      selectedVehicleId: null,
+      staff: {
+        operators: 3,
+        geologist: 0,
+        mechanic: 0,
+        metallurgist: 0
+      },
+
+      contract: null,
+      activeEvent: null,
+      eventCooldown: 35,
+
+      keys: {},
+      joystick: { active: false, dx: 0, dy: 0 },
+      autoSaveTimer: 0,
+      marketTimer: 0,
+
+      init() {
+        this.canvas = document.getElementById('gameCanvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.resize();
+        window.addEventListener('resize', () => this.resize());
+
+        this.bindInputs();
+
+        const loaded = saveSystem.loadAutoSave();
+        if (!loaded) {
+          this.generateNewSite(Date.now());
+        }
+
+        this.initialized = true;
+        ui.updateAllHUD();
+
+        const tutDone = localStorage.getItem(STORAGE_KEYS.TUTORIAL_DONE) === 'true';
+        const showStartup = localStorage.getItem(STORAGE_KEYS.SHOW_STARTUP);
+        const shouldShowGuide = showStartup === null ? true : showStartup === 'true';
+        const chk = document.getElementById('chk-show-startup');
+        if (chk) chk.checked = shouldShowGuide;
+
+        if (!tutDone) {
+          tutorial.start(false);
+        } else if (shouldShowGuide) {
+          ui.openModal('modal-help');
+        }
+
+        let lastTime = performance.now();
+        const loop = (now) => {
+          const dt = Math.min(0.05, (now - lastTime) / 1000);
+          lastTime = now;
+          this.update(dt);
+          this.render();
+          requestAnimationFrame(loop);
+        };
+        requestAnimationFrame(loop);
+      },
+
+      resize() {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        this.width = window.innerWidth;
+        this.height = window.innerHeight;
+        this.canvas.width = this.width * dpr;
+        this.canvas.height = this.height * dpr;
+        this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      },
+
+      // Procedural Quarry Generator
+      generateNewSite(seedVal) {
+        this.seed = seedVal || Date.now();
+        let s = this.seed % 2147483647;
+        if (s <= 0) s += 2147483646;
+        const rand = () => (s = (s * 16807) % 2147483647) / 2147483647;
+
+        const prefixes = ['Ironridge', 'Copperhead', 'Goldstrike', 'Sunstone', 'Redrock', 'Titan'];
+        const suffixes = ['Quarry', 'Open Pit', 'Basin', 'Canyon', 'Excavation'];
+        this.siteName = `${prefixes[Math.floor(rand() * prefixes.length)]} ${suffixes[Math.floor(rand() * suffixes.length)]}`;
+
+        this.money = 25000;
+        this.totalEarned = 0;
+        this.day = 1;
+        this.timeOfDay = 0.28;
+        this.weather = 'clear';
+        this.silos = { iron: 2, copper: 1, gold: 0, lithium: 0 };
+        this.facilities.crusher.rawBuffer = { iron: 0, copper: 0, gold: 0, lithium: 0 };
+        this.orePiles = [];
+        this.particles = [];
+        this.floatingTexts = [];
+        this.conveyorItems = [];
+
+        this.staff = { operators: 3, geologist: 0, mechanic: 0, metallurgist: 0 };
+
+        // Generate Grid
+        this.grid = [];
+        for (let r = 0; r < MAP_ROWS; r++) {
+          const row = [];
+          for (let c = 0; c < MAP_COLS; c++) {
+            if (c < 10) {
+              row.push({ terrain: TERRAIN.ROAD, hp: 0, maxHp: 0, ore: null, richness: 0, special: null });
+            } else if (c < 13 + Math.floor(Math.sin(r * 0.45) * 1.5)) {
+              row.push({ terrain: TERRAIN.PIT_FLOOR, hp: 0, maxHp: 0, ore: null, richness: 0, special: null });
+            } else {
+              const depth = (c - 12) / (MAP_COLS - 12);
+              const noise = rand();
+              let terrain = TERRAIN.DIRT;
+              let maxHp = 40;
+              if (depth > 0.68 && noise > 0.35) {
+                terrain = TERRAIN.BEDROCK;
+                maxHp = 150;
+              } else if (depth > 0.36 && noise > 0.3) {
+                terrain = TERRAIN.GRANITE;
+                maxHp = 95;
+              } else if (noise > 0.38) {
+                terrain = TERRAIN.LIMESTONE;
+                maxHp = 65;
+              }
+
+              // Procedural Mineral Veins
+              let ore = 'iron';
+              const vRoll = rand() + depth * 0.35;
+              if (vRoll > 1.05) ore = 'lithium';
+              else if (vRoll > 0.82) ore = 'gold';
+              else if (vRoll > 0.52) ore = 'copper';
+
+              const specialRoll = rand();
+              let special = null;
+              if (specialRoll < 0.025) special = 'geode';
+              else if (specialRoll < 0.04) special = 'fossil';
+
+              row.push({
+                terrain,
+                hp: maxHp,
+                maxHp,
+                ore,
+                richness: 3 + Math.floor(rand() * 4),
+                special
+              });
+            }
+          }
+          this.grid.push(row);
+        }
+
+        // Starter Fleet positioned cleanly in open road/pit lanes
+        this.vehicles = [
+          this.createVehicle('excavator', 1, 560, 440),
+          this.createVehicle('loader', 1, 520, 560),
+          this.createVehicle('dumper', 1, 460, 480)
+        ];
+        this.vehicles.forEach(v => (v.aiEnabled = true));
+        this.selectedVehicleId = this.vehicles[0].id;
+
+        this.updatePitLoadZone();
+        this.generateNewContract();
+        this.centerCameraOnSelected();
+        saveSystem.autoSave();
+        if (this.initialized) {
+          ui.updateAllHUD();
+          ui.toast(`Generated new quarry site: ${this.siteName}!`, 'success');
+        }
+      },
+
+      createVehicle(type, index, x, y) {
+        const spec = VEHICLE_SPECS[type];
+        return {
+          id: `${type}_${Date.now()}_${Math.floor(Math.random() * 9999)}`,
+          type,
+          name: `${spec.label} #${index}`,
+          x,
+          y,
+          angle: 0,
+          wheelPhase: 0,
+          animTimer: 0,
+          animType: 'idle',
+          aiStatusText: '🤖 Ready',
+          waypoint: null,
+          path: [],
+          pathGoalKey: '',
+          pathCooldown: 0,
+          stuckTimer: 0,
+          lastCheckX: x,
+          lastCheckY: y,
+          reverseTimer: 0,
+          speedLvl: 1,
+          capLvl: 1,
+          powerLvl: 1,
+          aiEnabled: false,
+          actionCooldown: 0,
+          cargo: { iron: 0, copper: 0, gold: 0, lithium: 0 }
+        };
+      },
+
+      getSelectedVehicle() {
+        return this.vehicles.find(v => v.id === this.selectedVehicleId) || this.vehicles[0] || null;
+      },
+
+      selectVehicle(v) {
+        if (!v) return;
+        this.selectedVehicleId = v.id;
+        ui.updateSelectedVehicleHUD();
+      },
+
+      cycleVehicle() {
+        if (this.vehicles.length === 0) return;
+        const idx = this.vehicles.findIndex(v => v.id === this.selectedVehicleId);
+        const next = this.vehicles[(idx + 1) % this.vehicles.length];
+        this.selectVehicle(next);
+        this.centerCameraOnSelected();
+      },
+
+      centerCameraOnSelected() {
+        const v = this.getSelectedVehicle();
+        if (!v) return;
+        this.cam.x = v.x - (this.width / this.cam.zoom) * 0.5;
+        this.cam.y = v.y - (this.height / this.cam.zoom) * 0.5;
+      },
+
+      toggleSelectedAI() {
+        const v = this.getSelectedVehicle();
+        if (!v) return;
+        v.aiEnabled = !v.aiEnabled;
+        v.waypoint = null;
+        v.path = [];
+        v.aiStatusText = v.aiEnabled ? '🤖 Auto-Shuttle Active' : '🕹️ Manual Control';
+        ui.updateSelectedVehicleHUD();
+      },
+
+      getVehicleSpeed(v) {
+        const spec = VEHICLE_SPECS[v.type];
+        const mechBonus = 1 + this.staff.mechanic * 0.08;
+        return spec.baseSpeed * (1 + (v.speedLvl - 1) * 0.22) * mechBonus;
+      },
+
+      getVehicleCapacity(v) {
+        const spec = VEHICLE_SPECS[v.type];
+        return Math.round(spec.baseCap * (1 + (v.capLvl - 1) * 0.35));
+      },
+
+      getVehicleTotalCargo(v) {
+        return v.cargo.iron + v.cargo.copper + v.cargo.gold + v.cargo.lithium;
+      },
+
+      // =====================================================================
+      // INPUT HANDLING (MOUSE, TOUCH PAN/PINCH-ZOOM, WAYPOINTS, KEYBOARD)
+      // =====================================================================
+      bindInputs() {
+        window.addEventListener('keydown', (e) => {
+          this.keys[e.code] = true;
+          if (e.code === 'Space') {
+            e.preventDefault();
+            this.triggerManualAction();
+          }
+        });
+        window.addEventListener('keyup', (e) => {
+          this.keys[e.code] = false;
+        });
+
+        let pointerDownPos = null;
+        let pinchStartDist = 0;
+        let pinchStartZoom = 1;
+
+        this.canvas.addEventListener('pointerdown', (e) => {
+          soundFX.ensure();
+          pointerDownPos = { x: e.clientX, y: e.clientY };
+          this.cam.dragging = true;
+          this.cam.lastX = e.clientX;
+          this.cam.lastY = e.clientY;
+        });
+
+        window.addEventListener('pointermove', (e) => {
+          if (!this.cam.dragging) return;
+          const dx = e.clientX - this.cam.lastX;
+          const dy = e.clientY - this.cam.lastY;
+          this.cam.x -= dx / this.cam.zoom;
+          this.cam.y -= dy / this.cam.zoom;
+          this.cam.lastX = e.clientX;
+          this.cam.lastY = e.clientY;
+        });
+
+        window.addEventListener('pointerup', (e) => {
+          if (this.cam.dragging && pointerDownPos) {
+            const moveDist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
+            if (moveDist < 8 && e.target === this.canvas) {
+              this.handleMapTap(e.clientX, e.clientY);
+            }
+          }
+          this.cam.dragging = false;
+          pointerDownPos = null;
+        });
+
+        this.canvas.addEventListener('wheel', (e) => {
+          e.preventDefault();
+          const factor = e.deltaY < 0 ? 1.1 : 0.9;
+          this.cam.zoom = Math.max(0.55, Math.min(1.65, this.cam.zoom * factor));
+        }, { passive: false });
+
+        // Pinch-to-zoom on iPad/iPhone
+        this.canvas.addEventListener('touchstart', (e) => {
+          if (e.touches.length === 2) {
+            pinchStartDist = Math.hypot(
+              e.touches[0].clientX - e.touches[1].clientX,
+              e.touches[0].clientY - e.touches[1].clientY
+            );
+            pinchStartZoom = this.cam.zoom;
+          }
+        }, { passive: true });
+
+        this.canvas.addEventListener('touchmove', (e) => {
+          if (e.touches.length === 2 && pinchStartDist > 0) {
+            const dist = Math.hypot(
+              e.touches[0].clientX - e.touches[1].clientX,
+              e.touches[0].clientY - e.touches[1].clientY
+            );
+            this.cam.zoom = Math.max(0.55, Math.min(1.65, pinchStartZoom * (dist / pinchStartDist)));
+          }
+        }, { passive: true });
+
+        // Mobile Virtual Joystick
+        const joyZone = document.getElementById('joystick-zone');
+        const joyKnob = document.getElementById('joystick-knob');
+        const updateJoy = (clientX, clientY) => {
+          const rect = joyZone.getBoundingClientRect();
+          const cx = rect.left + rect.width / 2;
+          const cy = rect.top + rect.height / 2;
+          let dx = clientX - cx;
+          let dy = clientY - cy;
+          const maxR = 34;
+          const dist = Math.hypot(dx, dy);
+          if (dist > maxR) {
+            dx = (dx / dist) * maxR;
+            dy = (dy / dist) * maxR;
+          }
+          joyKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+          this.joystick.active = true;
+          this.joystick.dx = dx / maxR;
+          this.joystick.dy = dy / maxR;
+        };
+
+        joyZone.addEventListener('touchstart', (e) => {
+          e.preventDefault();
+          const t = e.touches[0];
+          updateJoy(t.clientX, t.clientY);
+        }, { passive: false });
+
+        joyZone.addEventListener('touchmove', (e) => {
+          e.preventDefault();
+          const t = e.touches[0];
+          updateJoy(t.clientX, t.clientY);
+        }, { passive: false });
+
+        const resetJoy = () => {
+          this.joystick.active = false;
+          this.joystick.dx = 0;
+          this.joystick.dy = 0;
+          joyKnob.style.transform = 'translate(0px, 0px)';
+        };
+        joyZone.addEventListener('touchend', resetJoy);
+        joyZone.addEventListener('touchcancel', resetJoy);
+      },
+
+      handleMapTap(screenX, screenY) {
+        const wx = screenX / this.cam.zoom + this.cam.x;
+        const wy = screenY / this.cam.zoom + this.cam.y;
+
+        // Check if player tapped a machine
+        for (const v of this.vehicles) {
+          if (Math.hypot(v.x - wx, v.y - wy) < 34) {
+            this.selectVehicle(v);
+            soundFX.playTone(440, 0.06, 'sine', 0.08);
+            return;
+          }
+        }
+
+        // Otherwise send selected vehicle to tapped location via A* pathfinding
+        const sel = this.getSelectedVehicle();
+        if (sel) {
+          sel.waypoint = { x: wx, y: wy };
+          sel.path = [];
+          sel.aiStatusText = '📍 Moving to Waypoint';
+          this.spawnParticle(wx, wy, '#38bdf8', 0.5);
+          ui.updateSelectedVehicleHUD();
+        }
+      },
+
+      hasManualInput() {
+        return (
+          this.keys['KeyW'] || this.keys['ArrowUp'] ||
+          this.keys['KeyS'] || this.keys['ArrowDown'] ||
+          this.keys['KeyA'] || this.keys['ArrowLeft'] ||
+          this.keys['KeyD'] || this.keys['ArrowRight'] ||
+          this.joystick.active
+        );
+      },
+
+      // =====================================================================
+      // MAIN SIMULATION UPDATE LOOP
+      // =====================================================================
+      update(dt) {
+        // Day/Night & Weather Cycle
+        this.timeOfDay = (this.timeOfDay + dt * 0.008) % 1;
+        if (this.timeOfDay < dt * 0.008) this.day++;
+
+        this.weatherTimer -= dt;
+        if (this.weatherTimer <= 0) {
+          this.weather = this.weather === 'clear' ? 'rain' : 'clear';
+          this.weatherTimer = 45 + Math.random() * 40;
+        }
+
+        // Dynamic Commodity Market Fluctuations
+        this.marketTimer += dt;
+        if (this.marketTimer >= 12) {
+          this.marketTimer = 0;
+          Object.keys(ORES).forEach(k => {
+            const base = ORES[k].basePrice;
+            const delta = (Math.random() - 0.48) * 0.14;
+            const next = Math.max(Math.round(base * 0.65), Math.min(Math.round(base * 1.65), Math.round(this.marketPrices[k] * (1 + delta))));
+            this.priceTrend[k] = next >= this.marketPrices[k] ? 1 : -1;
+            this.marketPrices[k] = next;
+          });
+        }
+
+        // Crusher Plant Refining Logic
+        const crusher = this.facilities.crusher;
+        const rawTotal = crusher.rawBuffer.iron + crusher.rawBuffer.copper + crusher.rawBuffer.gold + crusher.rawBuffer.lithium;
+        if (rawTotal > 0) {
+          crusher.animPhase += dt * 8;
+          const refineRate = (1.8 + this.staff.metallurgist * 0.6) * dt;
+          for (const k of Object.keys(crusher.rawBuffer)) {
+            if (crusher.rawBuffer[k] > 0) {
+              const processed = Math.min(crusher.rawBuffer[k], refineRate);
+              crusher.rawBuffer[k] -= processed;
+              this.silos[k] += processed;
+
+              if (Math.random() < dt * 3.5) {
+                this.conveyorItems.push({ color: ORES[k].color, progress: 0 });
+              }
+            }
+          }
+        }
+
+        // Animated Conveyor Belt Ingots (Crusher -> Export Bay)
+        for (let i = this.conveyorItems.length - 1; i >= 0; i--) {
+          this.conveyorItems[i].progress += dt * 0.55;
+          if (this.conveyorItems[i].progress >= 1) {
+            this.conveyorItems.splice(i, 1);
+          }
+        }
+
+        // Export Semi-Truck & Auto-Dispatch
+        this.updateExportTruck(dt);
+
+        // Keep Pit Load Zone dynamically anchored in clear open pit ground
+        this.updatePitLoadZone();
+
+        // Vehicles (Manual, Waypoint, or Smart Autonomous A* Shuttle)
+        const selectedV = this.getSelectedVehicle();
+        let activeAICount = 0;
+
+        this.vehicles.forEach(v => {
+          if (v.actionCooldown > 0) v.actionCooldown -= dt;
+          if (v.pathCooldown > 0) v.pathCooldown -= dt;
+          if (v.animTimer > 0) {
+            v.animTimer = Math.max(0, v.animTimer - dt);
+            if (v.animTimer === 0) v.animType = 'idle';
+          }
+
+          const isSelected = selectedV && v.id === selectedV.id;
+          const hasInput = this.hasManualInput();
+
+          if (isSelected && hasInput) {
+            v.waypoint = null;
+            v.path = [];
+            v.stuckTimer = 0;
+            v.aiStatusText = '🕹️ Manual Driving';
+            this.updateManualVehicle(v, dt);
+          } else if (v.waypoint) {
+            this.updateWaypointVehicle(v, dt);
+          } else if (v.aiEnabled && activeAICount < this.staff.operators) {
+            activeAICount++;
+            this.updateAIVehicle(v, dt);
+          } else if (v.aiEnabled) {
+            v.aiStatusText = '⏸️ Needs Operator (Crew)';
+          }
+        });
+
+        // Update Particles & Floating Text
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+          const p = this.particles[i];
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.life -= dt;
+          if (p.life <= 0) this.particles.splice(i, 1);
+        }
+
+        for (let i = this.floatingTexts.length - 1; i >= 0; i--) {
+          const ft = this.floatingTexts[i];
+          ft.y -= 28 * dt;
+          ft.life -= dt;
+          if (ft.life <= 0) this.floatingTexts.splice(i, 1);
+        }
+
+        // Update Interactive Onboarding Tutorial
+        tutorial.update();
+
+        // Periodic HUD & Autosave
+        this.autoSaveTimer += dt;
+        if (this.autoSaveTimer >= 10) {
+          this.autoSaveTimer = 0;
+          saveSystem.autoSave();
+        }
+        ui.updateAllHUD();
+      },
+
+      updateExportTruck(dt) {
+        const truck = this.exportTruck;
+        const totalSiloTons = this.silos.iron + this.silos.copper + this.silos.gold + this.silos.lithium;
+
+        if (truck.state === 'waiting') {
+          truck.x = 130;
+          truck.y = 578;
+          if (this.autoExport && totalSiloTons >= 8) {
+            this.dispatchExportTruck();
+          }
+        } else if (truck.state === 'loading') {
+          truck.timer -= dt;
+          this.facilities.exportBay.craneX = Math.sin(performance.now() * 0.006) * 28;
+          if (truck.timer <= 0) {
+            truck.state = 'departing';
+          }
+        } else if (truck.state === 'departing') {
+          truck.y += 190 * dt;
+          if (truck.y > MAP_ROWS * TILE_SIZE + 90) {
+            this.money += truck.cargoValue;
+            this.totalEarned += truck.cargoValue;
+            soundFX.playCash();
+            this.addFloatingText(this.facilities.exportBay.x + 80, this.facilities.exportBay.y, `+$${truck.cargoValue.toLocaleString()}`, '#34d399');
+            ui.toast(`Export Semi-Truck delivered ingots for +$${truck.cargoValue.toLocaleString()}!`, 'success');
+            truck.cargoValue = 0;
+            truck.loadedBars = 0;
+            truck.state = 'returning';
+          }
+        } else if (truck.state === 'returning') {
+          truck.y -= 190 * dt;
+          if (truck.y <= 578) {
+            truck.y = 578;
+            truck.state = 'waiting';
+          }
+        }
+      },
+
+      dispatchExportTruck() {
+        const truck = this.exportTruck;
+        if (truck.state !== 'waiting') return;
+        let payout = 0;
+        let shipped = 0;
+
+        for (const k of Object.keys(this.silos)) {
+          const tons = Math.floor(this.silos[k] * 10) / 10;
+          if (tons > 0) {
+            this.silos[k] -= tons;
+            payout += Math.round(tons * this.marketPrices[k]);
+            shipped += tons;
+            this.advanceContract(k, tons);
+          }
+        }
+
+        if (payout <= 0) {
+          ui.toast('No refined ingots in silos to export yet!', 'warn');
+          return;
+        }
+
+        truck.cargoValue = payout;
+        truck.loadedBars = Math.min(8, Math.max(2, Math.round(shipped)));
+        truck.state = 'loading';
+        truck.timer = 1.4;
+        soundFX.playTone(320, 0.14, 'square', 0.08);
+      },
+
+      updateManualVehicle(v, dt) {
+        let ix = 0;
+        let iy = 0;
+        if (this.keys['KeyW'] || this.keys['ArrowUp']) iy -= 1;
+        if (this.keys['KeyS'] || this.keys['ArrowDown']) iy += 1;
+        if (this.keys['KeyA'] || this.keys['ArrowLeft']) ix -= 1;
+        if (this.keys['KeyD'] || this.keys['ArrowRight']) ix += 1;
+        if (this.joystick.active) {
+          ix = this.joystick.dx;
+          iy = this.joystick.dy;
+        }
+
+        const mag = Math.hypot(ix, iy);
+        if (mag > 0.05) {
+          const nx = ix / Math.max(1, mag);
+          const ny = iy / Math.max(1, mag);
+          v.angle = Math.atan2(ny, nx);
+          const spd = this.getVehicleSpeed(v);
+          v.wheelPhase += spd * dt * 0.12;
+          this.moveVehicleWithCollision(v, nx * spd * dt, ny * spd * dt);
+        }
+      },
+
+      updateWaypointVehicle(v, dt) {
+        if (!v.waypoint) return;
+        const d = Math.hypot(v.waypoint.x - v.x, v.waypoint.y - v.y);
+        if (d > 38) {
+          this.navigateTo(v, v.waypoint.x, v.waypoint.y, dt);
+        } else {
+          v.waypoint = null;
+          v.path = [];
+          this.triggerVehicleAction(v);
+        }
+      },
+
+      // =====================================================================
+      // A* PATHFINDING & ANTI-STUCK COLLISION AVOIDANCE
+      // =====================================================================
+      isTileWalkable(c, r) {
+        if (c < 2 || c >= MAP_COLS - 1 || r < 1 || r >= MAP_ROWS - 1) return false;
+        const tile = this.grid[r]?.[c];
+        if (!tile) return false;
+        if (tile.terrain >= TERRAIN.DIRT && tile.terrain <= TERRAIN.BEDROCK && tile.hp > 0) {
+          return false;
+        }
+        const wx = c * TILE_SIZE + TILE_SIZE / 2;
+        const wy = r * TILE_SIZE + TILE_SIZE / 2;
+        const { crusher, exportBay, garage } = this.facilities;
+        const inRect = (rect, pad) =>
+          wx > rect.x + pad && wx < rect.x + rect.w - pad &&
+          wy > rect.y + pad && wy < rect.y + rect.h - pad;
+
+        if (inRect(crusher, 14) || inRect(exportBay, 14) || inRect(garage, 14)) {
+          return false;
+        }
+        return true;
+      },
+
+      findNearestWalkableTile(startC, startR) {
+        if (this.isTileWalkable(startC, startR)) return { c: startC, r: startR };
+        for (let radius = 1; radius <= 8; radius++) {
+          let best = null;
+          let bestDist = Infinity;
+          for (let dr = -radius; dr <= radius; dr++) {
+            for (let dc = -radius; dc <= radius; dc++) {
+              const nc = startC + dc;
+              const nr = startR + dr;
+              if (this.isTileWalkable(nc, nr)) {
+                const d = Math.hypot(dc, dr);
+                if (d < bestDist) {
+                  bestDist = d;
+                  best = { c: nc, r: nr };
+                }
+              }
+            }
+          }
+          if (best) return best;
+        }
+        return { c: Math.max(2, Math.min(MAP_COLS - 2, startC)), r: Math.max(1, Math.min(MAP_ROWS - 2, startR)) };
+      },
+
+      computeAStarPath(startX, startY, goalX, goalY) {
+        const sTile = this.findNearestWalkableTile(Math.floor(startX / TILE_SIZE), Math.floor(startY / TILE_SIZE));
+        const gTile = this.findNearestWalkableTile(Math.floor(goalX / TILE_SIZE), Math.floor(goalY / TILE_SIZE));
+
+        if (sTile.c === gTile.c && sTile.r === gTile.r) {
+          return [{ x: gTile.c * TILE_SIZE + TILE_SIZE / 2, y: gTile.r * TILE_SIZE + TILE_SIZE / 2 }];
+        }
+
+        const key = (c, r) => (r << 8) | c;
+        const open = [{ c: sTile.c, r: sTile.r, g: 0, f: Math.hypot(gTile.c - sTile.c, gTile.r - sTile.r) }];
+        const cameFrom = new Map();
+        const gScore = new Map();
+        const closed = new Set();
+        gScore.set(key(sTile.c, sTile.r), 0);
+
+        const dirs = [
+          [1, 0, 1], [-1, 0, 1], [0, 1, 1], [0, -1, 1],
+          [1, 1, 1.414], [1, -1, 1.414], [-1, 1, 1.414], [-1, -1, 1.414]
+        ];
+
+        let iterations = 0;
+        while (open.length > 0 && iterations++ < 900) {
+          open.sort((a, b) => a.f - b.f);
+          const cur = open.shift();
+          const curK = key(cur.c, cur.r);
+
+          if (cur.c === gTile.c && cur.r === gTile.r) {
+            const path = [];
+            let traceK = curK;
+            while (cameFrom.has(traceK)) {
+              const tc = traceK & 0xff;
+              const tr = traceK >> 8;
+              path.unshift({ x: tc * TILE_SIZE + TILE_SIZE / 2, y: tr * TILE_SIZE + TILE_SIZE / 2 });
+              traceK = cameFrom.get(traceK);
+            }
+            return path;
+          }
+
+          closed.add(curK);
+
+          for (const [dc, dr, cost] of dirs) {
+            const nc = cur.c + dc;
+            const nr = cur.r + dr;
+            const nK = key(nc, nr);
+            if (closed.has(nK) || !this.isTileWalkable(nc, nr)) continue;
+            if (dc !== 0 && dr !== 0) {
+              if (!this.isTileWalkable(cur.c + dc, cur.r) || !this.isTileWalkable(cur.c, cur.r + dr)) continue;
+            }
+
+            const tentativeG = cur.g + cost;
+            if (tentativeG < (gScore.get(nK) ?? Infinity)) {
+              cameFrom.set(nK, curK);
+              gScore.set(nK, tentativeG);
+              const h = Math.hypot(gTile.c - nc, gTile.r - nr);
+              const existing = open.find(n => n.c === nc && n.r === nr);
+              if (existing) {
+                existing.g = tentativeG;
+                existing.f = tentativeG + h;
+              } else {
+                open.push({ c: nc, r: nr, g: tentativeG, f: tentativeG + h });
+              }
+            }
+          }
+        }
+
+        return [{ x: gTile.c * TILE_SIZE + TILE_SIZE / 2, y: gTile.r * TILE_SIZE + TILE_SIZE / 2 }];
+      },
+
+      navigateTo(v, goalX, goalY, dt) {
+        if (v.reverseTimer > 0) {
+          v.reverseTimer -= dt;
+          const spd = this.getVehicleSpeed(v) * 0.65;
+          this.moveVehicleWithCollision(v, -Math.cos(v.angle) * spd * dt, -Math.sin(v.angle) * spd * dt);
+          v.wheelPhase -= spd * dt * 0.12;
+          return;
+        }
+
+        const gTile = this.findNearestWalkableTile(Math.floor(goalX / TILE_SIZE), Math.floor(goalY / TILE_SIZE));
+        const goalKey = `${gTile.c},${gTile.r}`;
+
+        if (v.pathGoalKey !== goalKey || v.path.length === 0 || v.pathCooldown <= 0) {
+          v.path = this.computeAStarPath(v.x, v.y, goalX, goalY);
+          v.pathGoalKey = goalKey;
+          v.pathCooldown = 1.4;
+        }
+
+        while (v.path.length > 1 && Math.hypot(v.path[0].x - v.x, v.path[0].y - v.y) < 28) {
+          v.path.shift();
+        }
+
+        const nextNode = v.path[0] || { x: goalX, y: goalY };
+        this.steerTowards(v, nextNode.x, nextNode.y, dt);
+
+        v.stuckTimer += dt;
+        if (v.stuckTimer >= 1.2) {
+          const movedDist = Math.hypot(v.x - v.lastCheckX, v.y - v.lastCheckY);
+          v.lastCheckX = v.x;
+          v.lastCheckY = v.y;
+          v.stuckTimer = 0;
+          if (movedDist < 8) {
+            v.reverseTimer = 0.45;
+            v.path = [];
+            v.pathCooldown = 0;
+          }
+        }
+      },
+
+      updatePitLoadZone() {
+        let anchorX = 640;
+        let anchorY = 580;
+        if (this.orePiles.length > 0) {
+          anchorX = this.orePiles[0].x - 75;
+          anchorY = this.orePiles[0].y;
+        } else {
+          const exc = this.vehicles.find(v => v.type === 'excavator');
+          if (exc) {
+            anchorX = exc.x - 95;
+            anchorY = exc.y;
+          }
+        }
+        const safeTile = this.findNearestWalkableTile(
+          Math.max(11, Math.floor(anchorX / TILE_SIZE)),
+          Math.floor(anchorY / TILE_SIZE)
+        );
+        this.pitLoadZone.x = safeTile.c * TILE_SIZE + TILE_SIZE / 2;
+        this.pitLoadZone.y = safeTile.r * TILE_SIZE + TILE_SIZE / 2;
+      },
+
+      moveVehicleWithCollision(v, dx, dy) {
+        const margin = 24;
+        const maxW = MAP_COLS * TILE_SIZE - margin;
+        const maxH = MAP_ROWS * TILE_SIZE - margin;
+
+        let moveX = dx;
+        let moveY = dy;
+
+        // Soft vehicle-to-vehicle separation steering so dumpers & loaders pass cleanly
+        for (const other of this.vehicles) {
+          if (other.id === v.id) continue;
+          const sepX = v.x - other.x;
+          const sepY = v.y - other.y;
+          const dist = Math.hypot(sepX, sepY);
+          if (dist > 0.1 && dist < 52) {
+            const push = ((52 - dist) / 52) * 2.2;
+            moveX += (sepX / dist) * push;
+            moveY += (sepY / dist) * push;
+          }
+        }
+
+        const canOccupy = (px, py) => {
+          const c = Math.floor(px / TILE_SIZE);
+          const r = Math.floor(py / TILE_SIZE);
+          return this.isTileWalkable(c, r);
+        };
+
+        const nextX = Math.max(margin, Math.min(maxW, v.x + moveX));
+        const nextY = Math.max(margin, Math.min(maxH, v.y + moveY));
+
+        let moved = false;
+        if (canOccupy(nextX, nextY)) {
+          v.x = nextX;
+          v.y = nextY;
+          moved = true;
+        } else if (canOccupy(nextX, v.y)) {
+          v.x = nextX;
+          moved = true;
+        } else if (canOccupy(v.x, nextY)) {
+          v.y = nextY;
+          moved = true;
+        }
+
+        return moved;
+      },
+
+      // =====================================================================
+      // SMART AUTONOMOUS SHUTTLE LOOPS
+      // =====================================================================
+      updateAIVehicle(v, dt) {
+        if (v.type === 'excavator') {
+          let target = null;
+          let minD = Infinity;
+          for (let r = 0; r < MAP_ROWS; r++) {
+            for (let c = 11; c < MAP_COLS; c++) {
+              const t = this.grid[r][c];
+              if (t.terrain >= TERRAIN.DIRT && t.terrain <= TERRAIN.BEDROCK && t.hp > 0) {
+                const reqP = t.terrain === TERRAIN.BEDROCK ? 3 : (t.terrain === TERRAIN.GRANITE ? 2 : 1);
+                if (v.powerLvl >= reqP) {
+                  const tx = c * TILE_SIZE + 24;
+                  const ty = r * TILE_SIZE + 24;
+                  const d = Math.hypot(tx - v.x, ty - v.y);
+                  if (d < minD) {
+                    minD = d;
+                    target = { x: tx, y: ty };
+                  }
+                }
+              }
+            }
+          }
+          if (target) {
+            if (minD > 62) {
+              v.aiStatusText = '🚜 Moving to Pit Face';
+              this.navigateTo(v, target.x, target.y, dt);
+            } else {
+              v.aiStatusText = '⛏️ Excavating Ore';
+              v.path = [];
+              v.stuckTimer = 0;
+              v.angle = Math.atan2(target.y - v.y, target.x - v.x);
+              this.triggerVehicleAction(v);
+            }
+          } else {
+            v.aiStatusText = '⚠️ Upgrade Hydraulics!';
+          }
+        } else if (v.type === 'loader') {
+          const cap = this.getVehicleCapacity(v);
+          const load = this.getVehicleTotalCargo(v);
+
+          if (load >= cap * 0.65 || (load > 0 && this.orePiles.length === 0)) {
+            let targetX = this.facilities.crusher.x + this.facilities.crusher.w + 34;
+            let targetY = this.facilities.crusher.y + 58;
+            let loadingDumper = false;
+            for (const other of this.vehicles) {
+              if (other.type === 'dumper' && (this.getVehicleCapacity(other) - this.getVehicleTotalCargo(other)) >= load) {
+                targetX = other.x;
+                targetY = other.y;
+                loadingDumper = true;
+                break;
+              }
+            }
+            const d = Math.hypot(targetX - v.x, targetY - v.y);
+            if (d > (loadingDumper ? 68 : 54)) {
+              v.aiStatusText = loadingDumper ? '🏗️ Driving to Dumper' : '🏗️ Hauling to Crusher';
+              this.navigateTo(v, targetX, targetY, dt);
+            } else {
+              v.aiStatusText = loadingDumper ? '📦 Loading Dumper' : '⚙️ Dumping into Crusher';
+              v.path = [];
+              v.stuckTimer = 0;
+              v.angle = Math.atan2(targetY - v.y, targetX - v.x);
+              this.triggerVehicleAction(v);
+            }
+          } else if (this.orePiles.length > 0) {
+            let nearest = this.orePiles[0];
+            let minD = Infinity;
+            for (const p of this.orePiles) {
+              const d = Math.hypot(p.x - v.x, p.y - v.y);
+              if (d < minD) {
+                minD = d;
+                nearest = p;
+              }
+            }
+            if (minD > 52) {
+              v.aiStatusText = '🏗️ Moving to Ore Pile';
+              this.navigateTo(v, nearest.x, nearest.y, dt);
+            } else {
+              v.aiStatusText = '🪨 Scooping Ore';
+              v.path = [];
+              v.stuckTimer = 0;
+              v.angle = Math.atan2(nearest.y - v.y, nearest.x - v.x);
+              this.triggerVehicleAction(v);
+            }
+          } else {
+            v.aiStatusText = '⏳ Waiting for Ore Piles';
+          }
+        } else if (v.type === 'dumper') {
+          const cap = this.getVehicleCapacity(v);
+          const load = this.getVehicleTotalCargo(v);
+
+          if (load >= cap * 0.6 || (load > 0 && this.orePiles.length === 0 && load >= 6)) {
+            const dockX = this.facilities.crusher.x + this.facilities.crusher.w + 36;
+            const dockY = this.facilities.crusher.y + 58;
+            const d = Math.hypot(dockX - v.x, dockY - v.y);
+            if (d > 48) {
+              v.aiStatusText = '🚛 Hauling to Crusher';
+              this.navigateTo(v, dockX, dockY, dt);
+            } else {
+              v.aiStatusText = '⬇️ Dumping at Crusher';
+              v.path = [];
+              v.stuckTimer = 0;
+              v.angle = Math.atan2(v.y - dockY, v.x - (dockX - 40));
+              this.triggerVehicleAction(v);
+            }
+          } else {
+            const d = Math.hypot(this.pitLoadZone.x - v.x, this.pitLoadZone.y - v.y);
+            if (d > 48) {
+              v.aiStatusText = '🚛 Driving to Pit Load Zone';
+              this.navigateTo(v, this.pitLoadZone.x, this.pitLoadZone.y, dt);
+            } else {
+              v.aiStatusText = '⏳ Waiting for Loader';
+              v.path = [];
+              v.stuckTimer = 0;
+            }
+          }
+        }
+      },
+
+      steerTowards(v, tx, ty, dt) {
+        const desiredAngle = Math.atan2(ty - v.y, tx - v.x);
+        let diff = desiredAngle - v.angle;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        v.angle += diff * Math.min(1, dt * 8);
+
+        const spd = this.getVehicleSpeed(v) * 0.92;
+        v.wheelPhase += spd * dt * 0.12;
+
+        if (Math.random() < 0.25) {
+          this.spawnParticle(v.x - Math.cos(v.angle) * 20, v.y - Math.sin(v.angle) * 20, '#78716c', 0.4);
+        }
+
+        this.moveVehicleWithCollision(v, Math.cos(v.angle) * spd * dt, Math.sin(v.angle) * spd * dt);
+      },
+
+      triggerManualAction() {
+        const v = this.getSelectedVehicle();
+        if (v) this.triggerVehicleAction(v, true);
+      },
+
+      triggerVehicleAction(v, manual = false) {
+        if (v.actionCooldown > 0) return;
+        v.actionCooldown = Math.max(0.28, 0.65 - (v.powerLvl - 1) * 0.1);
+        v.animTimer = 0.45;
+
+        if (v.type === 'excavator') {
+          v.animType = 'dig';
+          const reachX = v.x + Math.cos(v.angle) * 52;
+          const reachY = v.y + Math.sin(v.angle) * 52;
+          let targetTile = null;
+          let bestD = 72;
+
+          for (let r = 0; r < MAP_ROWS; r++) {
+            for (let c = 10; c < MAP_COLS; c++) {
+              const t = this.grid[r][c];
+              if (t.terrain >= TERRAIN.DIRT && t.terrain <= TERRAIN.BEDROCK && t.hp > 0) {
+                const tx = c * TILE_SIZE + 24;
+                const ty = r * TILE_SIZE + 24;
+                const d = Math.hypot(tx - reachX, ty - reachY);
+                if (d < bestD) {
+                  bestD = d;
+                  targetTile = { t, c, r, tx, ty };
+                }
+              }
+            }
+          }
+
+          if (targetTile) {
+            const reqP = targetTile.t.terrain === TERRAIN.BEDROCK ? 3 : (targetTile.t.terrain === TERRAIN.GRANITE ? 2 : 1);
+            if (v.powerLvl < reqP) {
+              if (manual) this.addFloatingText(targetTile.tx, targetTile.ty - 10, `Requires Hydraulics Lv.${reqP}!`, '#f87171');
+              return;
+            }
+
+            const dmg = 28 * v.powerLvl;
+            targetTile.t.hp -= dmg;
+            soundFX.playDig();
+            for (let i = 0; i < 6; i++) {
+              this.spawnParticle(targetTile.tx, targetTile.ty, ORES[targetTile.t.ore].color, 0.55);
+            }
+
+            if (targetTile.t.hp <= 0) {
+              const oreKey = targetTile.t.ore;
+              const geoBonus = this.staff.geologist * 2;
+              const amount = targetTile.t.richness + geoBonus;
+
+              if (targetTile.t.special === 'geode') {
+                this.money += 3500;
+                this.totalEarned += 3500;
+                soundFX.playJackpot();
+                this.addFloatingText(targetTile.tx, targetTile.ty - 18, '💎 Crystal Geode +$3,500!', '#38bdf8');
+              } else if (targetTile.t.special === 'fossil') {
+                this.money += 2500;
+                this.totalEarned += 2500;
+                soundFX.playJackpot();
+                this.addFloatingText(targetTile.tx, targetTile.ty - 18, '🦕 Ancient Fossil +$2,500!', '#fbbf24');
+              }
+
+              targetTile.t.terrain = TERRAIN.PIT_FLOOR;
+              targetTile.t.hp = 0;
+
+              this.orePiles.push({
+                x: targetTile.tx - 28,
+                y: targetTile.ty,
+                ore: oreKey,
+                amount
+              });
+              this.addFloatingText(targetTile.tx, targetTile.ty, `+${amount}t ${ORES[oreKey].label}`, ORES[oreKey].color);
+            }
+          }
+        } else if (v.type === 'loader') {
+          const cap = this.getVehicleCapacity(v);
+          const load = this.getVehicleTotalCargo(v);
+
+          // Check unload into Dumper or Crusher first
+          if (load > 0) {
+            for (const other of this.vehicles) {
+              if (other.type === 'dumper' && Math.hypot(other.x - v.x, other.y - v.y) < 82) {
+                const dSpace = this.getVehicleCapacity(other) - this.getVehicleTotalCargo(other);
+                if (dSpace > 0) {
+                  v.animType = 'dump';
+                  let transferred = 0;
+                  for (const k of Object.keys(v.cargo)) {
+                    const move = Math.min(v.cargo[k], dSpace - transferred);
+                    v.cargo[k] -= move;
+                    other.cargo[k] += move;
+                    transferred += move;
+                  }
+                  if (transferred > 0) {
+                    soundFX.playTone(260, 0.1, 'triangle', 0.08);
+                    this.addFloatingText(other.x, other.y - 20, `+${transferred}t Loaded`, '#facc15');
+                    return;
+                  }
+                }
+              }
+            }
+
+            const crusher = this.facilities.crusher;
+            if (Math.hypot((crusher.x + crusher.w) - v.x, (crusher.y + 58) - v.y) < 88) {
+              v.animType = 'dump';
+              this.unloadIntoCrusher(v);
+              return;
+            }
+          }
+
+          // Scoop nearby ore pile
+          if (load < cap) {
+            for (let i = this.orePiles.length - 1; i >= 0; i--) {
+              const p = this.orePiles[i];
+              if (Math.hypot(p.x - v.x, p.y - v.y) < 68) {
+                v.animType = 'scoop';
+                const take = Math.min(p.amount, cap - load);
+                v.cargo[p.ore] += take;
+                p.amount -= take;
+                if (p.amount <= 0) this.orePiles.splice(i, 1);
+                soundFX.playTone(220, 0.09, 'sine', 0.08);
+                break;
+              }
+            }
+          }
+        } else if (v.type === 'dumper') {
+          const load = this.getVehicleTotalCargo(v);
+          const crusher = this.facilities.crusher;
+          if (load > 0 && Math.hypot((crusher.x + crusher.w) - v.x, (crusher.y + 58) - v.y) < 95) {
+            v.animType = 'dump';
+            this.unloadIntoCrusher(v);
+          }
+        }
+      },
+
+      unloadIntoCrusher(v) {
+        const crusher = this.facilities.crusher;
+        const curRaw = crusher.rawBuffer.iron + crusher.rawBuffer.copper + crusher.rawBuffer.gold + crusher.rawBuffer.lithium;
+        let space = crusher.maxBuffer - curRaw;
+        let dumped = 0;
+
+        for (const k of Object.keys(v.cargo)) {
+          const move = Math.min(v.cargo[k], space);
+          v.cargo[k] -= move;
+          crusher.rawBuffer[k] += move;
+          space -= move;
+          dumped += move;
+        }
+
+        if (dumped > 0) {
+          soundFX.playTone(180, 0.16, 'sawtooth', 0.08);
+          this.addFloatingText(crusher.x + 80, crusher.y, `⚙️ +${dumped}t to Crusher`, '#fbbf24');
+        }
+      },
+
+      spawnParticle(x, y, color, life = 0.5) {
+        this.particles.push({
+          x,
+          y,
+          vx: (Math.random() - 0.5) * 48,
+          vy: (Math.random() - 0.5) * 48,
+          color,
+          life,
+          maxLife: life
+        });
+      },
+
+      addFloatingText(x, y, text, color = '#ffffff') {
+        this.floatingTexts.push({ x, y, text, color, life: 1.35 });
+      },
+
+      // =====================================================================
+      // CONTRACTS & PURCHASES
+      // =====================================================================
+      generateNewContract() {
+        const keys = ['iron', 'copper', 'gold', 'lithium'];
+        const ore = keys[Math.floor(Math.random() * keys.length)];
+        const target = ore === 'iron' ? 12 : ore === 'copper' ? 8 : ore === 'gold' ? 5 : 4;
+        const reward = Math.round(target * ORES[ore].basePrice * 1.45);
+        this.contract = { ore, target, progress: 0, reward };
+      },
+
+      advanceContract(ore, tons) {
+        if (!this.contract || this.contract.ore !== ore) return;
+        this.contract.progress = Math.min(this.contract.target, Math.round((this.contract.progress + tons) * 10) / 10);
+        if (this.contract.progress >= this.contract.target) {
+          const bonus = this.contract.reward;
+          this.money += bonus;
+          this.totalEarned += bonus;
+          soundFX.playJackpot();
+          ui.toast(`Contract Fulfilled! Bonus +$${bonus.toLocaleString()}!`, 'success');
+          this.generateNewContract();
+        }
+      },
+
+      buyVehicle(type) {
+        const spec = VEHICLE_SPECS[type];
+        const count = this.vehicles.filter(v => v.type === type).length;
+        const cost = Math.round(spec.baseCost * Math.pow(1.35, count));
+        if (this.money < cost) {
+          ui.toast('Insufficient funds!', 'warn');
+          return;
+        }
+        this.money -= cost;
+        const v = this.createVehicle(type, count + 1, 450, 740);
+        v.aiEnabled = true;
+        this.vehicles.push(v);
+        this.selectVehicle(v);
+        soundFX.playCash();
+        ui.toast(`Purchased ${v.name}!`, 'success');
+        ui.renderGarageModal();
+        ui.updateAllHUD();
+      },
+
+      upgradeVehicle(id, stat) {
+        const v = this.vehicles.find(item => item.id === id);
+        if (!v) return;
+        const lvl = v[stat];
+        if (lvl >= 5) return;
+        const cost = 2500 * lvl;
+        if (this.money < cost) {
+          ui.toast('Insufficient funds for upgrade!', 'warn');
+          return;
+        }
+        this.money -= cost;
+        v[stat]++;
+        soundFX.playCash();
+        ui.toast(`Upgraded ${v.name}!`, 'success');
+        ui.renderGarageModal();
+        ui.updateAllHUD();
+      },
+
+      hireStaff(role) {
+        const costs = {
+          operators: 3500 * this.staff.operators,
+          geologist: 5000 * (this.staff.geologist + 1),
+          mechanic: 4500 * (this.staff.mechanic + 1),
+          metallurgist: 5500 * (this.staff.metallurgist + 1)
+        };
+        const cost = costs[role];
+        if (this.money < cost) {
+          ui.toast('Insufficient funds to hire specialist!', 'warn');
+          return;
+        }
+        this.money -= cost;
+        this.staff[role]++;
+        soundFX.playCash();
+        ui.toast('Specialist hired and assigned to quarry!', 'success');
+        ui.renderStaffModal();
+        ui.updateAllHUD();
+      },
+
+      // =====================================================================
+      // CANVAS RENDERING ENGINE
+      // =====================================================================
+      render() {
+        const ctx = this.ctx;
+        ctx.clearRect(0, 0, this.width, this.height);
+
+        ctx.save();
+        ctx.scale(this.cam.zoom, this.cam.zoom);
+        ctx.translate(-this.cam.x, -this.cam.y);
+
+        this.renderTerrain(ctx);
+        this.renderHaulRoadGuides(ctx);
+        this.renderFacilities(ctx);
+        this.renderExportTruck(ctx);
+        this.renderOrePiles(ctx);
+        this.vehicles.forEach(v => this.renderVehicle(ctx, v));
+        this.renderParticlesAndText(ctx);
+
+        ctx.restore();
+
+        // Subtle Night / Rain Atmosphere Overlay
+        const darkness = Math.max(0, Math.sin(this.timeOfDay * Math.PI * 2 - Math.PI * 0.5) * 0.34);
+        if (darkness > 0.02) {
+          ctx.fillStyle = `rgba(9, 14, 28, ${darkness.toFixed(2)})`;
+          ctx.fillRect(0, 0, this.width, this.height);
+        }
+      },
+
+      renderTerrain(ctx) {
+        for (let r = 0; r < MAP_ROWS; r++) {
+          for (let c = 0; c < MAP_COLS; c++) {
+            const t = this.grid[r][c];
+            const x = c * TILE_SIZE;
+            const y = r * TILE_SIZE;
+
+            if (t.terrain === TERRAIN.ROAD) {
+              ctx.fillStyle = c >= 2 && c <= 8 ? '#1e293b' : '#172033';
+              ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+              ctx.strokeStyle = 'rgba(148, 163, 184, 0.06)';
+              ctx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
+            } else if (t.terrain === TERRAIN.PIT_FLOOR) {
+              ctx.fillStyle = '#262b36';
+              ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+              ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+              ctx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
+            } else {
+              // Solid Rock Seam
+              ctx.fillStyle =
+                t.terrain === TERRAIN.BEDROCK ? '#3b2d63' :
+                t.terrain === TERRAIN.GRANITE ? '#475569' :
+                t.terrain === TERRAIN.LIMESTONE ? '#64748b' : '#785a3c';
+              ctx.fillRect(x + 1, y + 1, TILE_SIZE - 2, TILE_SIZE - 2);
+
+              // Mineral Fleck Dots
+              if (t.ore) {
+                ctx.fillStyle = ORES[t.ore].color;
+                ctx.beginPath();
+                ctx.arc(x + 15, y + 16, 3.2, 0, Math.PI * 2);
+                ctx.arc(x + 32, y + 29, 3.6, 0, Math.PI * 2);
+                ctx.arc(x + 22, y + 36, 2.5, 0, Math.PI * 2);
+                ctx.fill();
+              }
+
+              // Special Geode / Fossil Sparkle
+              if (t.special) {
+                ctx.fillStyle = t.special === 'geode' ? '#38bdf8' : '#fde047';
+                ctx.beginPath();
+                ctx.arc(x + 24, y + 24, 5, 0, Math.PI * 2);
+                ctx.fill();
+              }
+
+              // Damage Bar if partially mined
+              if (t.hp < t.maxHp) {
+                ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
+                ctx.fillRect(x + 6, y + TILE_SIZE - 9, TILE_SIZE - 12, 4);
+                ctx.fillStyle = '#fbbf24';
+                ctx.fillRect(x + 6, y + TILE_SIZE - 9, (TILE_SIZE - 12) * (t.hp / t.maxHp), 4);
+              }
+            }
+          }
+        }
+      },
+
+      renderHaulRoadGuides(ctx) {
+        const dockX = this.facilities.crusher.x + this.facilities.crusher.w + 36;
+        const dockY = this.facilities.crusher.y + 58;
+        ctx.save();
+        ctx.strokeStyle = 'rgba(245, 158, 11, 0.25)';
+        ctx.lineWidth = 3;
+        ctx.setLineDash([12, 12]);
+        ctx.lineDashOffset = -(performance.now() * 0.03) % 24;
+        ctx.beginPath();
+        ctx.moveTo(this.pitLoadZone.x, this.pitLoadZone.y);
+        ctx.lineTo(465, this.pitLoadZone.y);
+        ctx.lineTo(465, dockY);
+        ctx.lineTo(dockX, dockY);
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.strokeStyle = 'rgba(251, 191, 36, 0.35)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 6]);
+        ctx.beginPath();
+        ctx.arc(this.pitLoadZone.x, this.pitLoadZone.y, 42, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = 'rgba(251, 191, 36, 0.65)';
+        ctx.font = 'bold 10px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('PIT LOAD ZONE', this.pitLoadZone.x, this.pitLoadZone.y + 54);
+      },
+
+      renderFacilities(ctx) {
+        const { crusher, exportBay, garage } = this.facilities;
+
+        // Conveyor Belt between Crusher and Export Bay
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(crusher.x + 70, crusher.y + crusher.h, 20, exportBay.y - (crusher.y + crusher.h));
+        ctx.strokeStyle = '#475569';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(crusher.x + 70, crusher.y + crusher.h, 20, exportBay.y - (crusher.y + crusher.h));
+
+        // Moving Ingots on Conveyor
+        const beltTop = crusher.y + crusher.h;
+        const beltLen = exportBay.y - beltTop;
+        this.conveyorItems.forEach(item => {
+          ctx.fillStyle = item.color;
+          ctx.fillRect(crusher.x + 74, beltTop + item.progress * beltLen, 12, 8);
+        });
+
+        // 1. Crusher Plant
+        ctx.fillStyle = '#1e293b';
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.roundRect(crusher.x, crusher.y, crusher.w, crusher.h, 16);
+        ctx.fill();
+        ctx.stroke();
+
+        // Spinning Crusher Jaws
+        const jawOffset = Math.sin(crusher.animPhase) * 4;
+        ctx.fillStyle = '#64748b';
+        ctx.fillRect(crusher.x + 24 + jawOffset, crusher.y + 30, 18, 55);
+        ctx.fillRect(crusher.x + 54 - jawOffset, crusher.y + 30, 18, 55);
+
+        const rawTotal = Math.round(crusher.rawBuffer.iron + crusher.rawBuffer.copper + crusher.rawBuffer.gold + crusher.rawBuffer.lithium);
+        ctx.fillStyle = '#fbbf24';
+        ctx.font = '800 11px Inter, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText('⚙️ CRUSHER PLANT', crusher.x, crusher.y - 8);
+        ctx.fillStyle = '#e2e8f0';
+        ctx.font = 'bold 12px JetBrains Mono, monospace';
+        ctx.fillText(`${rawTotal}/${crusher.maxBuffer}t`, crusher.x + 86, crusher.y + 62);
+
+        // 2. Export Bay
+        ctx.fillStyle = '#0f2922';
+        ctx.strokeStyle = '#10b981';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.roundRect(exportBay.x, exportBay.y, exportBay.w, exportBay.h, 16);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#34d399';
+        ctx.font = '800 11px Inter, sans-serif';
+        ctx.fillText('🚛 EXPORT BAY', exportBay.x, exportBay.y - 8);
+
+        // Silo Indicator Circles
+        const siloKeys = ['iron', 'copper', 'gold', 'lithium'];
+        siloKeys.forEach((k, idx) => {
+          ctx.fillStyle = ORES[k].color;
+          ctx.beginPath();
+          ctx.arc(exportBay.x + 28 + idx * 34, exportBay.y + 58, 11, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
+        // Overhead Gantry Crane Beam when loading
+        if (this.exportTruck.state === 'loading') {
+          ctx.strokeStyle = '#fbbf24';
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.moveTo(this.exportTruck.x + 25, exportBay.y + 58);
+          ctx.lineTo(exportBay.x + 40 + exportBay.craneX, exportBay.y + 58);
+          ctx.stroke();
+        }
+
+        // 3. Workshop / Garage
+        ctx.fillStyle = '#172554';
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.roundRect(garage.x, garage.y, garage.w, garage.h, 16);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = '#7dd3fc';
+        ctx.font = '800 11px Inter, sans-serif';
+        ctx.fillText('🔧 WORKSHOP', garage.x, garage.y - 8);
+      },
+
+      renderExportTruck(ctx) {
+        const t = this.exportTruck;
+        ctx.save();
+        ctx.translate(t.x, t.y);
+
+        // Trailer
+        ctx.fillStyle = '#334155';
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(-22, -46, 44, 62, 6);
+        ctx.fill();
+        ctx.stroke();
+
+        // Loaded Ingots on Flatbed
+        for (let i = 0; i < t.loadedBars; i++) {
+          ctx.fillStyle = i % 2 === 0 ? '#facc15' : '#fb923c';
+          ctx.fillRect(-14 + (i % 2) * 16, -38 + Math.floor(i / 2) * 13, 12, 9);
+        }
+
+        // Cab
+        ctx.fillStyle = '#0284c7';
+        ctx.beginPath();
+        ctx.roundRect(-20, 20, 40, 26, 6);
+        ctx.fill();
+
+        ctx.restore();
+      },
+
+      renderOrePiles(ctx) {
+        this.orePiles.forEach(p => {
+          const r = Math.min(22, 11 + p.amount * 0.7);
+          ctx.fillStyle = ORES[p.ore].color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#0f172a';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 10px JetBrains Mono, monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText(`${p.amount}t`, p.x, p.y + 3);
+        });
+      },
+
+      renderVehicle(ctx, v) {
+        const isSelected = v.id === this.selectedVehicleId;
+        const cap = this.getVehicleCapacity(v);
+        const load = this.getVehicleTotalCargo(v);
+
+        // Selection Ring
+        if (isSelected) {
+          ctx.strokeStyle = '#fbbf24';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(v.x, v.y, 33, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        ctx.save();
+        ctx.translate(v.x, v.y);
+        ctx.rotate(v.angle);
+
+        if (v.type === 'excavator') {
+          // Caterpillar Tracks
+          ctx.fillStyle = '#1e293b';
+          ctx.fillRect(-20, -18, 40, 7);
+          ctx.fillRect(-20, 11, 40, 7);
+
+          // Swinging House
+          const swing = v.animType === 'dig' ? Math.sin(v.animTimer * 18) * 0.35 : 0;
+          ctx.rotate(swing);
+          ctx.fillStyle = '#f59e0b';
+          ctx.beginPath();
+          ctx.roundRect(-16, -13, 30, 26, 5);
+          ctx.fill();
+
+          // Hydraulic Boom & Bucket
+          const ext = v.animType === 'dig' ? Math.sin(v.animTimer * 14) * 10 : 0;
+          ctx.fillStyle = '#d97706';
+          ctx.fillRect(10, -4, 24 + ext, 8);
+          ctx.fillStyle = '#334155';
+          ctx.fillRect(32 + ext, -7, 10, 14);
+        } else if (v.type === 'loader') {
+          // Tires
+          ctx.fillStyle = '#0f172a';
+          ctx.fillRect(-16, -18, 12, 5);
+          ctx.fillRect(6, -18, 12, 5);
+          ctx.fillRect(-16, 13, 12, 5);
+          ctx.fillRect(6, 13, 12, 5);
+
+          // Chassis
+          ctx.fillStyle = '#fb923c';
+          ctx.beginPath();
+          ctx.roundRect(-18, -13, 34, 26, 6);
+          ctx.fill();
+
+          // Front Scoop Bucket
+          const lift = v.animType === 'scoop' || v.animType === 'dump' ? 6 : 0;
+          ctx.fillStyle = '#475569';
+          ctx.fillRect(16 + lift, -15, 11, 30);
+          if (load > 0) {
+            ctx.fillStyle = '#facc15';
+            ctx.fillRect(17 + lift, -11, 7, 22);
+          }
+        } else if (v.type === 'dumper') {
+          // 6 Heavy Wheels
+          ctx.fillStyle = '#0f172a';
+          [-18, -2, 12].forEach(wx => {
+            ctx.fillRect(wx, -18, 10, 4);
+            ctx.fillRect(wx, 14, 10, 4);
+          });
+
+          // Dump Bed (Tilts back when dumping)
+          const tiltShift = v.animType === 'dump' ? -6 : 0;
+          ctx.fillStyle = '#eab308';
+          ctx.beginPath();
+          ctx.roundRect(-24 + tiltShift, -14, 32, 28, 4);
+          ctx.fill();
+
+          if (load > 0) {
+            ctx.fillStyle = '#f97316';
+            ctx.beginPath();
+            ctx.roundRect(-20 + tiltShift, -10, 24, 20, 4);
+            ctx.fill();
+          }
+
+          // Front Cab
+          ctx.fillStyle = '#fef08a';
+          ctx.beginPath();
+          ctx.roundRect(10, -12, 14, 24, 4);
+          ctx.fill();
+        }
+
+        ctx.restore();
+
+        // Status Badge Above Machine
+        if (v.aiEnabled || load > 0) {
+          ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+          ctx.beginPath();
+          ctx.roundRect(v.x - 26, v.y - 36, 52, 15, 6);
+          ctx.fill();
+          ctx.fillStyle = v.aiEnabled ? '#38bdf8' : '#fbbf24';
+          ctx.font = 'bold 9px JetBrains Mono, monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText(`${v.aiEnabled ? '🤖' : ''}${load}/${cap}t`, v.x, v.y - 25);
+        }
+
+        // Interactive Tutorial World Highlight Ring
+        if (tutorial.active && tutorial.shouldHighlightVehicle(v)) {
+          const pulse = 44 + Math.sin(performance.now() * 0.008) * 6;
+          ctx.strokeStyle = '#38bdf8';
+          ctx.lineWidth = 3.5;
+          ctx.beginPath();
+          ctx.arc(v.x, v.y, pulse, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      },
+
+      renderParticlesAndText(ctx) {
+        this.particles.forEach(p => {
+          ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 3.5, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        ctx.globalAlpha = 1;
+
+        this.floatingTexts.forEach(ft => {
+          ctx.globalAlpha = Math.min(1, ft.life);
+          ctx.fillStyle = ft.color;
+          ctx.font = '800 12px Inter, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(ft.text, ft.x, ft.y);
+        });
+        ctx.globalAlpha = 1;
+      }
+    };
+
+    // =========================================================================
+    // 6. SAVE SYSTEM (AUTO-SAVE + NAMED SAVE SLOTS)
+    // =========================================================================
+    const saveSystem = {
+      serializeState() {
+        return {
+          version: APP_VERSION,
+          timestamp: Date.now(),
+          siteName: game.siteName,
+          seed: game.seed,
+          money: game.money,
+          totalEarned: game.totalEarned,
+          day: game.day,
+          timeOfDay: game.timeOfDay,
+          grid: game.grid,
+          orePiles: game.orePiles,
+          silos: game.silos,
+          crusherBuffer: game.facilities.crusher.rawBuffer,
+          vehicles: game.vehicles,
+          staff: game.staff,
+          contract: game.contract,
+          autoExport: game.autoExport
+        };
+      },
+
+      applyState(data) {
+        if (!data || !data.grid) return false;
+        game.siteName = data.siteName || 'Saved Quarry';
+        game.seed = data.seed || Date.now();
+        game.money = data.money ?? 25000;
+        game.totalEarned = data.totalEarned ?? 0;
+        game.day = data.day ?? 1;
+        game.timeOfDay = data.timeOfDay ?? 0.28;
+        game.grid = data.grid;
+        game.orePiles = data.orePiles || [];
+        game.silos = data.silos || { iron: 0, copper: 0, gold: 0, lithium: 0 };
+        if (data.crusherBuffer) game.facilities.crusher.rawBuffer = data.crusherBuffer;
+        game.vehicles = (data.vehicles || []).map(v => ({
+          ...v,
+          path: [],
+          pathGoalKey: '',
+          pathCooldown: 0,
+          stuckTimer: 0,
+          lastCheckX: v.x,
+          lastCheckY: v.y,
+          reverseTimer: 0
+        }));
+        game.selectedVehicleId = game.vehicles[0]?.id || null;
+        game.staff = data.staff || { operators: 3, geologist: 0, mechanic: 0, metallurgist: 0 };
+        game.contract = data.contract || null;
+        if (!game.contract) game.generateNewContract();
+        game.autoExport = data.autoExport ?? true;
+        game.updatePitLoadZone();
+        return true;
+      },
+
+      autoSave() {
+        try {
+          localStorage.setItem(STORAGE_KEYS.AUTOSAVE, JSON.stringify(this.serializeState()));
+        } catch (_) {}
+      },
+
+      loadAutoSave() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEYS.AUTOSAVE);
+          if (!raw) return false;
+          return this.applyState(JSON.parse(raw));
+        } catch (_) {
+          return false;
+        }
+      },
+
+      getSaveList() {
+        try {
+          return JSON.parse(localStorage.getItem(STORAGE_KEYS.SAVELIST) || '[]');
+        } catch (_) {
+          return [];
+        }
+      },
+
+      saveToSlot(nameInput) {
+        const list = this.getSaveList();
+        const name = (nameInput || '').trim() || `${game.siteName} (Day ${game.day})`;
+        list.unshift({
+          id: `save_${Date.now()}`,
+          name,
+          savedAt: new Date().toLocaleString(),
+          money: game.money,
+          day: game.day,
+          state: this.serializeState()
+        });
+        localStorage.setItem(STORAGE_KEYS.SAVELIST, JSON.stringify(list.slice(0, 15)));
+        ui.toast(`Saved "${name}"!`, 'success');
+        ui.renderSavesModal();
+      },
+
+      loadFromSlot(id) {
+        const slot = this.getSaveList().find(s => s.id === id);
+        if (!slot) return;
+        if (this.applyState(slot.state)) {
+          this.autoSave();
+          game.centerCameraOnSelected();
+          ui.updateAllHUD();
+          ui.closeModals();
+          ui.toast(`Loaded "${slot.name}"!`, 'success');
+        }
+      },
+
+      deleteSlot(id) {
+        const next = this.getSaveList().filter(s => s.id !== id);
+        localStorage.setItem(STORAGE_KEYS.SAVELIST, JSON.stringify(next));
+        ui.renderSavesModal();
+      }
+    };
+
+    // =========================================================================
+    // 7. UI & MODAL RENDERING CONTROLLER
+    // =========================================================================
+    const ui = {
+      toast(msg, type = 'info') {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+        const el = document.createElement('div');
+        const colors =
+          type === 'success' ? 'bg-emerald-950/95 border-emerald-500 text-emerald-200' :
+          type === 'warn' ? 'bg-rose-950/95 border-rose-500 text-rose-200' :
+          'bg-slate-900/95 border-amber-400 text-amber-100';
+        el.className = `pointer-events-auto border ${colors} rounded-2xl px-4 py-2.5 text-xs font-bold shadow-2xl backdrop-blur-md transition-all`;
+        el.textContent = msg;
+        container.appendChild(el);
+        setTimeout(() => {
+          el.style.opacity = '0';
+          setTimeout(() => el.remove(), 250);
+        }, 3200);
+      },
+
+      toggleStartupPref(checked) {
+        localStorage.setItem(STORAGE_KEYS.SHOW_STARTUP, checked ? 'true' : 'false');
+      },
+
+      updateAllHUD() {
+        document.getElementById('hud-money').textContent = `$${Math.floor(game.money).toLocaleString()}`;
+        document.getElementById('hud-day').textContent = `Day ${game.day}`;
+        const isNight = game.timeOfDay > 0.62 || game.timeOfDay < 0.14;
+        document.getElementById('hud-weather').textContent =
+          game.weather === 'rain' ? '🌧️ Rain' : isNight ? '🌙 Night' : '☀️ Clear';
+
+        const cr = game.facilities.crusher;
+        const rawSum = Math.round(cr.rawBuffer.iron + cr.rawBuffer.copper + cr.rawBuffer.gold + cr.rawBuffer.lithium);
+        document.getElementById('hud-crusher').textContent = `${rawSum}/${cr.maxBuffer}t`;
+        document.getElementById('hud-crusher-mobile').textContent = `⚙️ ${rawSum}/${cr.maxBuffer}t`;
+
+        document.getElementById('hud-silo-iron').textContent = `${game.silos.iron.toFixed(1)}t`;
+        document.getElementById('hud-silo-copper').textContent = `${game.silos.copper.toFixed(1)}t`;
+        document.getElementById('hud-silo-gold').textContent = `${game.silos.gold.toFixed(1)}t`;
+        document.getElementById('hud-silo-lithium').textContent = `${game.silos.lithium.toFixed(1)}t`;
+        document.getElementById('hud-silos-mobile').textContent =
+          `Fe:${game.silos.iron.toFixed(0)} Cu:${game.silos.copper.toFixed(0)} Au:${game.silos.gold.toFixed(0)} Li:${game.silos.lithium.toFixed(0)}`;
+
+        if (game.contract) {
+          const c = game.contract;
+          document.getElementById('hud-contract-text').textContent =
+            `Deliver ${c.target}t ${ORES[c.ore].label} (${c.progress.toFixed(1)}/${c.target}t)`;
+        }
+
+        document.getElementById('nav-v-count').textContent = game.vehicles.length;
+        this.updateSelectedVehicleHUD();
+      },
+
+      updateSelectedVehicleHUD() {
+        const v = game.getSelectedVehicle();
+        if (!v) return;
+        const spec = VEHICLE_SPECS[v.type];
+        const cap = game.getVehicleCapacity(v);
+        const load = game.getVehicleTotalCargo(v);
+
+        document.getElementById('sel-v-icon').textContent = spec.icon;
+        document.getElementById('sel-v-name').textContent = v.name;
+        document.getElementById('sel-v-state').textContent = v.aiStatusText || (v.aiEnabled ? '🤖 Auto-Shuttle Active' : '🕹️ Manual Control');
+        document.getElementById('sel-v-cargo').textContent = `${load} / ${cap} t`;
+        document.getElementById('sel-v-bar').style.width = `${Math.min(100, (load / cap) * 100)}%`;
+
+        const aiBtn = document.getElementById('btn-toggle-ai');
+        aiBtn.textContent = v.aiEnabled ? 'Auto: ON' : 'Auto: OFF';
+        aiBtn.className = v.aiEnabled
+          ? 'btn-industrial shrink-0 px-2.5 py-1 rounded-xl text-[11px] font-extrabold bg-cyan-500 text-slate-950'
+          : 'btn-industrial shrink-0 px-2.5 py-1 rounded-xl text-[11px] font-extrabold bg-slate-700 text-slate-200';
+      },
+
+      openModal(id) {
+        this.closeModals();
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.remove('hidden');
+        el.classList.add('flex');
+
+        if (id === 'modal-garage') {
+          this.renderGarageModal();
+          tutorial.notifyEvent('open_garage');
+        }
+        if (id === 'modal-staff') {
+          this.renderStaffModal();
+          tutorial.notifyEvent('open_staff');
+        }
+        if (id === 'modal-market') {
+          this.renderMarketModal();
+          tutorial.notifyEvent('open_market');
+        }
+        if (id === 'modal-contracts') this.renderContractsModal();
+        if (id === 'modal-saves') this.renderSavesModal();
+      },
+
+      closeModals() {
+        ['modal-garage', 'modal-staff', 'modal-market', 'modal-contracts', 'modal-saves', 'modal-help', 'modal-newgame'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) {
+            el.classList.add('hidden');
+            el.classList.remove('flex');
+          }
+        });
+      },
+
+      renderGarageModal() {
+        const container = document.getElementById('garage-content');
+        let html = `
+          <div>
+            <h3 class="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-2">Buy New Heavy Equipment</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+        `;
+
+        Object.values(VEHICLE_SPECS).forEach(spec => {
+          const count = game.vehicles.filter(v => v.type === spec.type).length;
+          const cost = Math.round(spec.baseCost * Math.pow(1.35, count));
+          html += `
+            <div class="bg-slate-800/90 border border-slate-700 rounded-2xl p-3 flex flex-col justify-between gap-2">
+              <div>
+                <div class="flex items-center justify-between">
+                  <span class="text-2xl">${spec.icon}</span>
+                  <span class="text-[11px] font-mono-num text-slate-400">Owned: ${count}</span>
+                </div>
+                <div class="font-extrabold text-sm text-white mt-1">${spec.label}</div>
+                <p class="text-[11px] text-slate-400 mt-0.5">${spec.desc}</p>
+              </div>
+              <button onclick="game.buyVehicle('${spec.type}')" ${game.money < cost ? 'disabled' : ''}
+                class="btn-industrial w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs py-2 rounded-xl mt-1">
+                Buy $${cost.toLocaleString()}
+              </button>
+            </div>
+          `;
+        });
+
+        html += `</div></div><div><h3 class="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-2">Upgrade Active Fleet</h3><div class="space-y-2.5">`;
+
+        game.vehicles.forEach(v => {
+          const spec = VEHICLE_SPECS[v.type];
+          const statBtn = (label, key) => {
+            const lvl = v[key];
+            const cost = 2500 * lvl;
+            return lvl >= 5
+              ? `<span class="text-[11px] font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-700/50 rounded-xl px-2.5 py-1.5 text-center">${label} MAX</span>`
+              : `<button onclick="game.upgradeVehicle('${v.id}', '${key}')" ${game.money < cost ? 'disabled' : ''}
+                  class="btn-industrial bg-slate-700 hover:bg-slate-600 text-white text-[11px] font-bold rounded-xl px-2.5 py-1.5">
+                  ${label} Lv.${lvl} ($${(cost / 1000).toFixed(1)}k)
+                </button>`;
+          };
+
+          html += `
+            <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div class="flex items-center gap-2.5">
+                <span class="text-2xl">${spec.icon}</span>
+                <div>
+                  <div class="font-extrabold text-sm text-white">${v.name}</div>
+                  <div class="text-[11px] text-slate-400">Cap: ${game.getVehicleCapacity(v)}t • Speed: ${Math.round(game.getVehicleSpeed(v))}</div>
+                </div>
+              </div>
+              <div class="grid grid-cols-3 gap-1.5">
+                ${statBtn('Hydraulics', 'powerLvl')}
+                ${statBtn('Capacity', 'capLvl')}
+                ${statBtn('Engine', 'speedLvl')}
+              </div>
+            </div>
+          `;
+        });
+
+        html += `</div></div>`;
+        container.innerHTML = html;
+      },
+
+      renderStaffModal() {
+        const roles = [
+          {
+            key: 'operators',
+            icon: '👷',
+            title: 'Machine Operators',
+            count: game.staff.operators,
+            cost: 3500 * game.staff.operators,
+            desc: `Allows up to ${game.staff.operators} machines to run Auto-Shuttle simultaneously.`
+          },
+          {
+            key: 'geologist',
+            icon: '🧭',
+            title: 'Chief Geologist',
+            count: game.staff.geologist,
+            cost: 5000 * (game.staff.geologist + 1),
+            desc: 'Increases ore yield from every broken rock seam (+2t per level).'
+          },
+          {
+            key: 'mechanic',
+            icon: '🛠️',
+            title: 'Fleet Mechanic',
+            count: game.staff.mechanic,
+            cost: 4500 * (game.staff.mechanic + 1),
+            desc: 'Boosts drive and hydraulic speed of all quarry vehicles (+8% per level).'
+          },
+          {
+            key: 'metallurgist',
+            icon: '⚗️',
+            title: 'Lead Metallurgist',
+            count: game.staff.metallurgist,
+            cost: 5500 * (game.staff.metallurgist + 1),
+            desc: 'Accelerates Crusher Plant ore refining throughput (+33% per level).'
+          }
+        ];
+
+        document.getElementById('staff-content').innerHTML = roles.map(r => `
+          <div class="bg-slate-800/85 border border-slate-700 rounded-2xl p-3.5 flex items-center justify-between gap-3">
+            <div class="flex items-start gap-3">
+              <span class="text-2xl mt-0.5">${r.icon}</span>
+              <div>
+                <div class="font-extrabold text-sm text-white">${r.title} <span class="text-cyan-300 font-mono-num ml-1">(Lv.${r.count})</span></div>
+                <p class="text-xs text-slate-400 mt-0.5">${r.desc}</p>
+              </div>
+            </div>
+            <button onclick="game.hireStaff('${r.key}')" ${game.money < r.cost ? 'disabled' : ''}
+              class="btn-industrial shrink-0 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs px-3.5 py-2 rounded-xl">
+              Hire $${r.cost.toLocaleString()}
+            </button>
+          </div>
+        `).join('');
+      },
+
+      renderMarketModal() {
+        let estPayout = 0;
+        Object.keys(ORES).forEach(k => {
+          estPayout += Math.round((Math.floor(game.silos[k] * 10) / 10) * game.marketPrices[k]);
+        });
+
+        let html = `
+          <div class="bg-emerald-950/40 border border-emerald-600/50 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div>
+              <div class="text-xs text-emerald-300 font-bold uppercase">Export Semi-Truck Dispatch</div>
+              <div class="text-sm text-slate-200 mt-0.5">Current Silo Cargo Value: <span class="font-mono-num font-black text-emerald-400">$${estPayout.toLocaleString()}</span></div>
+              <label class="flex items-center gap-2 text-xs text-slate-300 mt-2 cursor-pointer">
+                <input type="checkbox" ${game.autoExport ? 'checked' : ''} onchange="game.autoExport = this.checked" class="accent-emerald-500 w-4 h-4" />
+                <span>Auto-dispatch truck when total ingots ≥ 8.0t</span>
+              </label>
+            </div>
+            <button onclick="game.dispatchExportTruck(); ui.closeModals();" ${game.exportTruck.state !== 'waiting' || estPayout <= 0 ? 'disabled' : ''}
+              class="btn-industrial w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs px-5 py-3 rounded-2xl">
+              🚛 Dispatch Truck Now
+            </button>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+        `;
+
+        Object.values(ORES).forEach(o => {
+          const price = game.marketPrices[o.key];
+          const trend = game.priceTrend[o.key];
+          const stock = game.silos[o.key];
+          html += `
+            <div class="bg-slate-800/85 border border-slate-700 rounded-2xl p-3.5 flex items-center justify-between">
+              <div class="flex items-center gap-2.5">
+                <span class="w-4 h-4 rounded-full inline-block" style="background:${o.color}"></span>
+                <div>
+                  <div class="font-extrabold text-sm text-white">${o.label} Ingots</div>
+                  <div class="text-xs text-slate-400 font-mono-num">In Silo: ${stock.toFixed(1)}t</div>
+                </div>
+              </div>
+              <div class="text-right font-mono-num">
+                <div class="font-black text-sm ${trend >= 0 ? 'text-emerald-400' : 'text-rose-400'}">$${price}/t ${trend >= 0 ? '▲' : '▼'}</div>
+                <div class="text-[10px] text-slate-400">Base $${o.basePrice}/t</div>
+              </div>
+            </div>
+          `;
+        });
+
+        html += `</div>`;
+        document.getElementById('market-content').innerHTML = html;
+      },
+
+      renderContractsModal() {
+        const c = game.contract;
+        if (!c) return;
+        const pct = Math.min(100, (c.progress / c.target) * 100);
+        document.getElementById('contracts-content').innerHTML = `
+          <div class="bg-slate-800/90 border border-amber-500/40 rounded-2xl p-4 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-extrabold uppercase tracking-wider text-amber-400">Priority Supply Order</span>
+              <span class="font-mono-num font-black text-emerald-400">Reward: +$${c.reward.toLocaleString()}</span>
+            </div>
+            <div class="text-base font-black text-white">Export ${c.target}.0 tons of refined ${ORES[c.ore].label}</div>
+            <div>
+              <div class="flex justify-between text-xs font-mono-num text-slate-300 mb-1">
+                <span>Delivered</span>
+                <span>${c.progress.toFixed(1)} / ${c.target}.0 t</span>
+              </div>
+              <div class="w-full h-3 bg-slate-900 rounded-full overflow-hidden border border-slate-700">
+                <div class="h-full bg-amber-400 transition-all" style="width:${pct}%"></div>
+              </div>
+            </div>
+            <p class="text-xs text-slate-400">Tip: Dispatch the Export Semi-Truck in <b>Export & Market</b> to deliver refined ingots toward this contract.</p>
+          </div>
+        `;
+      },
+
+      renderSavesModal() {
+        const list = saveSystem.getSaveList();
+        let html = `
+          <div class="bg-indigo-950/40 border border-indigo-500/40 rounded-2xl p-3.5 flex flex-col sm:flex-row items-center gap-2.5">
+            <input id="input-save-name" type="text" placeholder="Enter save slot name (e.g. Gold Vein Expansion)..."
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-400" />
+            <button onclick="saveSystem.saveToSlot(document.getElementById('input-save-name').value)"
+              class="btn-industrial w-full sm:w-auto shrink-0 bg-indigo-500 hover:bg-indigo-400 text-white font-black text-xs px-4 py-2.5 rounded-xl">
+              💾 Save Current Site
+            </button>
+          </div>
+          <div class="space-y-2">
+        `;
+
+        if (list.length === 0) {
+          html += `<div class="text-xs text-slate-400 text-center py-4">No manual save slots yet. Autosave is active every 10 seconds!</div>`;
+        } else {
+          list.forEach(slot => {
+            html += `
+              <div class="bg-slate-800/85 border border-slate-700 rounded-2xl p-3 flex items-center justify-between gap-2">
+                <div>
+                  <div class="font-extrabold text-sm text-white">${slot.name}</div>
+                  <div class="text-[11px] text-slate-400 font-mono-num">Day ${slot.day} • $${Math.floor(slot.money).toLocaleString()} • ${slot.savedAt}</div>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <button onclick="saveSystem.loadFromSlot('${slot.id}')"
+                    class="btn-industrial bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3 py-1.5 rounded-xl">
+                    Load
+                  </button>
+                  <button onclick="saveSystem.deleteSlot('${slot.id}')"
+                    class="btn-industrial bg-slate-700 hover:bg-rose-600 text-slate-200 font-bold text-xs px-2.5 py-1.5 rounded-xl">
+                    🗑️
+                  </button>
+                </div>
+              </div>
+            `;
+          });
+        }
+
+        html += `
+          </div>
+          <div class="border-t border-slate-800 pt-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div class="text-xs text-slate-400">
+              Generate a <b>brand-new procedural quarry site</b> with fresh mineral veins and hidden discoveries.
+            </div>
+            <button onclick="game.generateNewSite(Date.now()); ui.closeModals();"
+              class="btn-industrial w-full sm:w-auto shrink-0 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs px-4 py-2.5 rounded-xl">
+              ✨ New Game (New Site)
+            </button>
+          </div>
+        `;
+        document.getElementById('saves-content').innerHTML = html;
+      }
+    };
+
+    // =========================================================================
+    // 8. INTERACTIVE STEP-BY-STEP ONBOARDING TUTORIAL
+    // =========================================================================
+    const tutorial = {
+      active: false,
+      stepIndex: 0,
+      openedMarket: false,
+      openedGarage: false,
+      openedStaff: false,
+
+      steps: [
+        {
+          title: '1. Excavate the Pit Face 🚜',
+          desc: 'Your Excavator breaks rock walls into raw ore piles. Tap the Excavator to select it, or watch its Auto-Shuttle dig!',
+          highlightUI: null,
+          checkComplete: () => {
+            const sel = game.getSelectedVehicle();
+            return (sel && sel.type === 'excavator' && game.orePiles.length > 0) || game.orePiles.length >= 2;
+          }
+        },
+        {
+          title: '2. Load & Haul with Loader & Dumper 🚛',
+          desc: 'The Wheel Loader scoops ore piles and loads the Articulated Dumper at the Pit Load Zone, which hauls via A* pathfinding to the Crusher!',
+          highlightUI: null,
+          checkComplete: () => {
+            const dmp = game.vehicles.find(v => v.type === 'dumper');
+            const cr = game.facilities.crusher.rawBuffer;
+            const crTotal = cr.iron + cr.copper + cr.gold + cr.lithium;
+            return (dmp && game.getVehicleTotalCargo(dmp) > 0) || crTotal > 0;
+          }
+        },
+        {
+          title: '3. Upgrade Hydraulics & Fleet 🔧',
+          desc: 'Open "Workshop & Buy" in the bottom dock to upgrade Hydraulics (required to mine purple Basalt!) or buy extra machines.',
+          highlightUI: 'nav-btn-garage',
+          checkComplete: () => tutorial.openedGarage
+        },
+        {
+          title: '4. Hire Crew Specialists 👷',
+          desc: 'Open "Crew" to hire extra Operators, Geologists (+ore yield), Mechanics (+speed), and Metallurgists (+refining speed).',
+          highlightUI: 'nav-btn-staff',
+          checkComplete: () => tutorial.openedStaff
+        },
+        {
+          title: '5. Sell Ingots & Fulfill Contracts 💰',
+          desc: 'Open "Export & Market" to inspect live metal prices and dispatch the Export Semi-Truck for cash payouts!',
+          highlightUI: 'nav-btn-market',
+          checkComplete: () => tutorial.openedMarket
+        }
+      ],
+
+      start(manualRestart = false) {
+        this.active = true;
+        this.stepIndex = 0;
+        this.openedMarket = false;
+        this.openedGarage = false;
+        this.openedStaff = false;
+
+        if (manualRestart) {
+          const exc = game.vehicles.find(v => v.type === 'excavator');
+          if (exc) {
+            game.selectVehicle(exc);
+            game.centerCameraOnSelected();
+          }
+        }
+
+        const card = document.getElementById('tutorial-card');
+        if (card) card.classList.remove('hidden');
+        this.renderStep();
+      },
+
+      renderStep() {
+        if (!this.active) return;
+        const step = this.steps[this.stepIndex];
+        if (!step) {
+          this.complete();
+          return;
+        }
+
+        document.getElementById('tut-step-badge').textContent = `Step ${this.stepIndex + 1} / ${this.steps.length}`;
+        document.getElementById('tut-progress-bar').style.width = `${((this.stepIndex + 1) / this.steps.length) * 100}%`;
+        document.getElementById('tut-title').textContent = step.title;
+        document.getElementById('tut-desc').textContent = step.desc;
+        document.getElementById('tut-status').textContent = '⏳ Try it or click Next →';
+        document.getElementById('tut-next-btn').textContent =
+          this.stepIndex === this.steps.length - 1 ? 'Finish 🎉' : 'Next Step →';
+
+        ['nav-btn-market', 'nav-btn-garage', 'nav-btn-staff'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.classList.remove('pulse-amber');
+        });
+        if (step.highlightUI) {
+          const targetEl = document.getElementById(step.highlightUI);
+          if (targetEl) targetEl.classList.add('pulse-amber');
+        }
+      },
+
+      update() {
+        if (!this.active) return;
+        const step = this.steps[this.stepIndex];
+        if (step && step.checkComplete()) {
+          document.getElementById('tut-status').textContent = '✅ Step complete!';
+          if (!this._advancing) {
+            this._advancing = true;
+            setTimeout(() => {
+              this._advancing = false;
+              if (this.active) this.nextStep();
+            }, 950);
+          }
+        }
+      },
+
+      notifyEvent(evt) {
+        if (evt === 'open_market') this.openedMarket = true;
+        if (evt === 'open_garage') this.openedGarage = true;
+        if (evt === 'open_staff') this.openedStaff = true;
+      },
+
+      shouldHighlightVehicle(v) {
+        if (!this.active) return false;
+        if (this.stepIndex === 0 && v.type === 'excavator') return true;
+        if (this.stepIndex === 1 && (v.type === 'loader' || v.type === 'dumper')) return true;
+        return false;
+      },
+
+      nextStep() {
+        this.stepIndex++;
+        if (this.stepIndex >= this.steps.length) {
+          this.complete();
+        } else {
+          soundFX.playTone(540, 0.08, 'sine', 0.09);
+          this.renderStep();
+        }
+      },
+
+      skip() {
+        this.active = false;
+        localStorage.setItem(STORAGE_KEYS.TUTORIAL_DONE, 'true');
+        const card = document.getElementById('tutorial-card');
+        if (card) card.classList.add('hidden');
+        ['nav-btn-market', 'nav-btn-garage', 'nav-btn-staff'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.classList.remove('pulse-amber');
+        });
+        ui.toast('Tutorial closed. Reopen anytime via the Guide button!', 'info');
+      },
+
+      complete() {
+        this.active = false;
+        localStorage.setItem(STORAGE_KEYS.TUTORIAL_DONE, 'true');
+        const card = document.getElementById('tutorial-card');
+        if (card) card.classList.add('hidden');
+        ['nav-btn-market', 'nav-btn-garage', 'nav-btn-staff'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.classList.remove('pulse-amber');
+        });
+        soundFX.playJackpot();
+        ui.toast('🎉 Tutorial Complete! Build your mining empire!', 'success');
+      }
+    };
+
+    window.addEventListener('load', () => {
+      appIconGenerator.init();
+      appUpdater.init();
+      game.init();
+    });
+  </script>
+</body>
+</html>
